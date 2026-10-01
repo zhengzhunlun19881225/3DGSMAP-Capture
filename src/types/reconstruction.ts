@@ -4,6 +4,19 @@ export type QualityLevel = 'ultra' | 'high' | 'medium';
 
 export type ReconstructionStatus = 'ready' | 'processing' | 'completed' | 'failed';
 
+export interface ReconstructionJob {
+  id: string;
+  status: ReconstructionStatus;
+  progress: number;
+  stage: number;
+  logs: string[];
+  artifact?: string | null;
+  registered_images?: number;
+  sparse_points?: number;
+  mean_reprojection_error?: number;
+  error?: string;
+}
+
 export type TemplateType = 'at' | 'mesh' | 'gaussian_splat' | 'fast_2d' | 'fast_3d';
 
 export type ComputationMode = 'desktop' | 'local_cluster' | 'cloud_serverless';
@@ -27,6 +40,8 @@ export interface PhotoAsset {
   alt: number;
   focalLength: number;
   isCalibrated: boolean;
+  /** Original browser file retained for the local reconstruction upload. */
+  file?: File;
   markedGCPs?: { gcpId: string; x: number; y: number }[];
 }
 
@@ -100,6 +115,8 @@ export interface ReconstructionTask {
   photos?: PhotoAsset[];
   params: ReconstructionParams;
   thumbnailUrl: string;
+  pipelineJobId?: string;
+  artifactUrl?: string;
   reportSummary?: {
     tiePointsCount: number;
     meanReprojectionError: number; // px

@@ -15,6 +15,7 @@ import { QualityReportModal } from './components/QualityReportModal';
 import { DualScreenComparison } from './components/DualScreenComparison';
 import { DeveloperSdkHub } from './components/DeveloperSdkHub';
 import { ReconstructionProgressModal } from './components/ReconstructionProgressModal';
+import { reconstructionApi } from './lib/reconstructionApi';
 
 import {
   INITIAL_PROJECTS,
@@ -29,6 +30,7 @@ import {
   TaskType,
   ReconstructionParams,
   PhotoAsset,
+  ReconstructionJob,
 } from './types/reconstruction';
 
 export default function App() {
@@ -45,6 +47,8 @@ export default function App() {
   const [showCrsModal, setShowCrsModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showReconstructionModal, setShowReconstructionModal] = useState(false);
+  const [pipelineJobId, setPipelineJobId] = useState<string | null>(null);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   // Switch project
   const handleSelectProject = (project: Project) => {
@@ -198,28 +202,61 @@ export default function App() {
   };
 
   // Start Reconstruction Pipeline
-  const handleStartReconstruction = () => {
-    setShowReconstructionModal(true);
+  const handleStartReconstruction = async () => {
+    setPipelineError(null);
+    if (!reconstructionApi) {
+      setPipelineError('此站点为界面预览。真实照片重建请在本地启动 COLMAP / Brush 服务后，访问 http://127.0.0.1:3000。');
+      return;
+    }
+    const files = (activeTask.photos || []).filter((photo) => photo.file).map((photo) => photo.file as File);
+    if (files.length < 2) {
+      setPipelineError('请先导入至少 2 张本地照片。预设样本只有演示元数据，无法提交给 COLMAP。');
+      return;
+    }
+
+    const form = new FormData();
+    form.append('metadata', JSON.stringify({
+      taskName: activeTask.name,
+      steps: activeTask.params.quality === 'ultra' ? 30000 : activeTask.params.quality === 'high' ? 18000 : 8000,
+      maxGaussianPoints: activeTask.params.maxGaussianPointsMode === 'auto'
+        ? 4000000
+        : activeTask.params.customMaxPoints,
+      maxResolution: activeTask.params.quality === 'ultra' ? 1920 : 1280,
+    }));
+    files.forEach((file) => form.append('images', file, file.name));
+
+    try {
+      const response = await fetch(`${reconstructionApi}/api/reconstruct`, { method: 'POST', body: form });
+      const payload = await response.json();
+      if (!response.ok || !payload.job_id) throw new Error(payload.error || '无法启动本地重建服务');
+      const updated = { ...activeTask, status: 'processing' as const, progress: 0, pipelineJobId: payload.job_id };
+      setActiveTask(updated);
+      setTasks((prev) => prev.map((task) => task.id === updated.id ? updated : task));
+      setPipelineJobId(payload.job_id);
+      setShowReconstructionModal(true);
+    } catch (error) {
+      setPipelineError(error instanceof Error ? error.message : '无法连接本地重建服务，请确认 API 已启动');
+    }
   };
 
   // Finish Reconstruction from progress modal
-  const handleFinishReconstruction = () => {
-    const pCount = activeTask.photoCount || 240;
-    const isUltra = activeTask.params.quality === 'ultra';
-    const isHigh = activeTask.params.quality === 'high';
-
+  const handleFinishReconstruction = (job: ReconstructionJob) => {
+    if (job.status !== 'completed' || !job.artifact) return;
     const completedTask: ReconstructionTask = {
       ...activeTask,
       status: 'completed',
       progress: 100,
+      pipelineJobId: job.id,
+      artifactUrl: `${reconstructionApi}/api/jobs/${job.id}/artifact/${encodeURIComponent(job.artifact)}`,
+      softwareVersion: 'pycolmap + Brush 0.3.0',
       completedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      currentStepMessage: '建模完成，三维瓦片准备就绪',
+      currentStepMessage: 'COLMAP 相机解算与 Brush 高斯训练完成，PLY 已生成',
       reportSummary: {
-        tiePointsCount: Math.round(pCount * (isUltra ? 4500 : isHigh ? 3300 : 2100)),
-        meanReprojectionError: isUltra ? 0.32 : isHigh ? 0.42 : 0.65,
-        groundSampleDistance: isUltra ? 1.84 : isHigh ? 2.30 : 3.50,
-        overlapRatio: isUltra ? 86.4 : 78.5,
-        areaCoveredKm2: Math.max(0.4, Number(((pCount * 0.0035)).toFixed(2))),
+        tiePointsCount: job.sparse_points || 0,
+        meanReprojectionError: job.mean_reprojection_error || 0,
+        groundSampleDistance: 0,
+        overlapRatio: 0,
+        areaCoveredKm2: 0,
       },
     };
 
@@ -228,6 +265,7 @@ export default function App() {
     setShowReconstructionModal(false);
     setActiveLeftTab('results');
     setCurrentTab('viewer');
+    setPipelineJobId(null);
   };
 
   return (
@@ -249,6 +287,11 @@ export default function App() {
       />
 
       {/* Main Content Router */}
+      {!reconstructionApi && (
+        <div className="bg-amber-950 px-4 py-2 text-xs text-amber-200">
+          公网界面预览 · 示例场景为演示数据 · 照片解算与高斯训练需要本地 COLMAP / Brush 服务
+        </div>
+      )}
       <main className="flex-1 flex overflow-hidden">
         {currentTab === 'projects' && (
           <ProjectList
@@ -333,9 +376,16 @@ export default function App() {
       {showReconstructionModal && (
         <ReconstructionProgressModal
           task={activeTask}
+          jobId={pipelineJobId}
           onFinish={handleFinishReconstruction}
           onCancel={() => setShowReconstructionModal(false)}
         />
+      )}
+      {pipelineError && (
+        <div className="fixed bottom-5 right-5 z-[10000] max-w-md rounded-xl border border-red-500/40 bg-[#27191d] px-4 py-3 text-xs text-red-200 shadow-2xl">
+          {pipelineError}
+          <button className="ml-3 text-red-300 underline" onClick={() => setPipelineError(null)}>关闭</button>
+        </div>
       )}
     </div>
   );

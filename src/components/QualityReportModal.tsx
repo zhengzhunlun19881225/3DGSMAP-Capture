@@ -70,7 +70,7 @@ export const QualityReportModal: React.FC<QualityReportModalProps> = ({ task, on
             <div className="p-3.5 rounded-xl bg-[#23252E] border border-[#30333E]">
               <div className="text-neutral-400 text-[11px] mb-1">平均重投影中误差</div>
               <div className="text-xl font-bold font-mono text-emerald-400 tabular-nums">
-                {summary.meanReprojectionError} <span className="text-xs font-normal">px</span>
+                {summary.meanReprojectionError > 0 ? summary.meanReprojectionError : '—'} {summary.meanReprojectionError > 0 && <span className="text-xs font-normal">px</span>}
               </div>
               <div className="text-[10px] text-emerald-500 mt-1 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
@@ -81,7 +81,7 @@ export const QualityReportModal: React.FC<QualityReportModalProps> = ({ task, on
             <div className="p-3.5 rounded-xl bg-[#23252E] border border-[#30333E]">
               <div className="text-neutral-400 text-[11px] mb-1">地面分辨率 (GSD)</div>
               <div className="text-xl font-bold font-mono text-white tabular-nums">
-                {summary.groundSampleDistance} <span className="text-xs font-normal">cm/px</span>
+                {summary.groundSampleDistance > 0 ? summary.groundSampleDistance : '—'} {summary.groundSampleDistance > 0 && <span className="text-xs font-normal">cm/px</span>}
               </div>
               <div className="text-[10px] text-neutral-400 mt-1">
                 相对航高 120m · 焦距 24mm
@@ -101,7 +101,7 @@ export const QualityReportModal: React.FC<QualityReportModalProps> = ({ task, on
             <div className="p-3.5 rounded-xl bg-[#23252E] border border-[#30333E]">
               <div className="text-neutral-400 text-[11px] mb-1">航带重叠度</div>
               <div className="text-xl font-bold font-mono text-indigo-400 tabular-nums">
-                {summary.overlapRatio}%
+                {summary.overlapRatio > 0 ? `${summary.overlapRatio}%` : '—'}
               </div>
               <div className="text-[10px] text-neutral-400 mt-1">
                 航向 80% · 旁向 75%

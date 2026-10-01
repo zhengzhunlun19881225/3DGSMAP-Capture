@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import {
   Download,
   Camera,
@@ -38,7 +39,7 @@ interface ReconstructionViewerProps {
   onOpenDualScreen: () => void;
   onOpenGcpEditor: () => void;
   onOpenSdkHub: () => void;
-  onStartReconstruction?: (taskId: string) => void;
+  onStartReconstruction?: (taskId?: string) => void;
   activeLeftTab: 'results' | 'params';
   onChangeLeftTab: (tab: 'results' | 'params') => void;
 }
@@ -420,6 +421,32 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
       renderer.dispose();
     };
   }, []);
+
+  // Replace the placeholder point cloud with the PLY produced by the local pipeline.
+  useEffect(() => {
+    if (!activeTask.artifactUrl || !splatGroupRef.current) return;
+    const group = splatGroupRef.current;
+    const loader = new PLYLoader();
+    loader.load(
+      activeTask.artifactUrl,
+      (geometry) => {
+        group.clear();
+        geometry.computeBoundingSphere();
+        const radius = geometry.boundingSphere?.radius || 10;
+        const material = new THREE.PointsMaterial({
+          size: Math.max(radius * 0.0015, 0.012),
+          vertexColors: Boolean(geometry.getAttribute('color')),
+          color: 0xdbeafe,
+          sizeAttenuation: true,
+        });
+        const cloud = new THREE.Points(geometry, material);
+        group.add(cloud);
+        showToast(`已加载真实高斯 PLY（${geometry.getAttribute('position')?.count.toLocaleString() || 0} 个点）`);
+      },
+      undefined,
+      () => showToast('PLY 成果加载失败，请检查本地 API 是否仍在运行'),
+    );
+  }, [activeTask.artifactUrl]);
 
   // Synchronize view mode with active task's template
   useEffect(() => {
@@ -1086,13 +1113,13 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   <div>
                     <div className="text-[10px] text-neutral-500">地面分辨率</div>
                     <div className="font-mono text-white">
-                      {activeTask.reportSummary.groundSampleDistance} cm/px
+                      {activeTask.reportSummary.groundSampleDistance > 0 ? `${activeTask.reportSummary.groundSampleDistance} cm/px` : '—'}
                     </div>
                   </div>
                   <div>
                     <div className="text-[10px] text-neutral-500">重投影误差</div>
                     <div className="font-mono text-emerald-400">
-                      {activeTask.reportSummary.meanReprojectionError} px
+                      {activeTask.reportSummary.meanReprojectionError > 0 ? `${activeTask.reportSummary.meanReprojectionError} px` : '—'}
                     </div>
                   </div>
                   <div>
@@ -1104,7 +1131,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   <div>
                     <div className="text-[10px] text-neutral-500">航带重叠度</div>
                     <div className="font-mono text-white">
-                      {activeTask.reportSummary.overlapRatio}%
+                      {activeTask.reportSummary.overlapRatio > 0 ? `${activeTask.reportSummary.overlapRatio}%` : '—'}
                     </div>
                   </div>
                 </div>
@@ -1114,7 +1141,9 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
             {/* Action Buttons matching Screenshot 2 */}
             <div className="pt-2 space-y-2">
               <button
-                onClick={() => showToast('已在三维视口打开当前成果详细层级与视锥')}
+                onClick={() => activeTask.artifactUrl
+                  ? showToast('真实 PLY 已在三维视口加载')
+                  : showToast('请先导入照片并完成 COLMAP + Brush 重建')}
                 className="w-full h-8 px-3 bg-[#242731] hover:bg-[#2C303D] border border-[#333744] text-xs font-medium rounded-lg text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5 text-blue-400" />

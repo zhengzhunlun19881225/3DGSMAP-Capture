@@ -7,42 +7,31 @@ import {
   Sparkles,
   Zap,
   Clock,
-  Play,
   Check,
   ChevronRight,
   Eye,
-  FileCheck2,
 } from 'lucide-react';
-import { ReconstructionTask } from '../types/reconstruction';
+import { ReconstructionJob, ReconstructionTask } from '../types/reconstruction';
+import { reconstructionApi } from '../lib/reconstructionApi';
 
 interface ReconstructionProgressModalProps {
   task: ReconstructionTask;
-  onFinish: () => void;
+  jobId: string | null;
+  onFinish: (job: ReconstructionJob) => void;
   onCancel: () => void;
 }
 
 export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalProps> = ({
   task,
+  jobId,
   onFinish,
   onCancel,
 }) => {
-  const [progress, setProgress] = useState(12);
+  const [job, setJob] = useState<ReconstructionJob | null>(null);
+  const [progress, setProgress] = useState(0);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
-  const [logs, setLogs] = useState<string[]>([
-    `[${new Date().toLocaleTimeString()}] 初始化 MipMap 重建引擎核心 (v3.2.3)...`,
-    `[${new Date().toLocaleTimeString()}] 载入影像数据集: 共 ${task.photoCount} 张无人机测区照片`,
-    `[${new Date().toLocaleTimeString()}] 读取相机参数: Camera-1 (焦距 24.0mm, 传感器尺寸 13.2x8.8mm)`,
-  ]);
-
-  const handleInstantFinish = () => {
-    setProgress(100);
-    setIsDone(true);
-    setLogs((l) => [
-      ...l,
-      `[${new Date().toLocaleTimeString()}] 触发快速流水线完成，所有成果已就绪！`,
-    ]);
-  };
+  const [logs, setLogs] = useState<string[]>([]);
 
   const templateName =
     task.params.template === 'gaussian_splat'
@@ -128,72 +117,27 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
   const stages = getStages();
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setIsDone(true);
-          return 100;
-        }
-
-        const next = Math.min(100, prev + Math.floor(Math.random() * 12) + 6);
-
-        // Update stage based on progress
-        const stageIdx = Math.min(
-          stages.length - 1,
-          Math.floor((next / 100) * stages.length)
-        );
-        setCurrentStageIndex(stageIdx);
-
-        // Add real-time logs tailored to template
-        if (next > 20 && next < 35 && prev <= 20) {
-          setLogs((l) => [
-            ...l,
-            `[${new Date().toLocaleTimeString()}] [空三阶段] 特征匹配完成，共建立 ${(task.photoCount * 3900).toLocaleString()} 组同名点，重投影误差 0.32px`,
-            `[${new Date().toLocaleTimeString()}] 启用 GPU 硬件加速: NVIDIA RTX 4090 (CUDA Core 100% 满载，显存占用 14.8GB)`,
-          ]);
-        } else if (next > 45 && next < 65 && prev <= 45) {
-          if (task.params.template === 'gaussian_splat') {
-            setLogs((l) => [
-              ...l,
-              `[${new Date().toLocaleTimeString()}] [3DGS 训练] 高斯椭球致密化分裂中: Iteration 7000/30000 (Loss: 0.0142)`,
-              task.params.humanRemoval
-                ? `[${new Date().toLocaleTimeString()}] [智能消除] 语义分割检测到动态行人物体，已执行几何掩膜消除`
-                : `[${new Date().toLocaleTimeString()}] [3DGS 训练] 当前活动高斯点数: 3,420,190`,
-            ]);
-          } else if (task.params.template === 'mesh') {
-            setLogs((l) => [
-              ...l,
-              `[${new Date().toLocaleTimeString()}] [网格重建] 泊松三角剖分生成顶点数: 2,840,110 面片数: 5,680,220`,
-              task.params.waterFlattening
-                ? `[${new Date().toLocaleTimeString()}] [水域优化] 自动侦测到河道水体边界，已执行高程基准面拉平`
-                : `[${new Date().toLocaleTimeString()}] [几何简化] 执行 QEM 网格抽稀至 ${task.params.meshSimplifyRatio}%`,
-            ]);
-          } else {
-            setLogs((l) => [
-              ...l,
-              `[${new Date().toLocaleTimeString()}] [正射校正] 像素级透视纠正完成，接缝线寻优无缝羽化`,
-            ]);
-          }
-        } else if (next > 75 && next < 90 && prev <= 75) {
-          setLogs((l) => [
-            ...l,
-            `[${new Date().toLocaleTimeString()}] [切片导出] 构建多层级空间索引树 (Octree LOD)...`,
-            `[${new Date().toLocaleTimeString()}] 坐标系转换至目标基准: ${task.params.crs}`,
-          ]);
-        } else if (next >= 100 && prev < 100) {
-          setLogs((l) => [
-            ...l,
-            `[${new Date().toLocaleTimeString()}] 重建完成！成果文件已写入本地高速存储，准备就绪。`,
-          ]);
-        }
-
-        return next;
-      });
-    }, 450);
-
-    return () => clearInterval(timer);
-  }, [task, stages.length]);
+    if (!jobId) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`${reconstructionApi}/api/jobs/${jobId}`);
+        if (!response.ok) throw new Error('无法读取本地重建任务状态');
+        const next = await response.json() as ReconstructionJob;
+        if (cancelled) return;
+        setJob(next);
+        setProgress(next.progress);
+        setCurrentStageIndex(Math.min(stages.length - 1, next.stage));
+        setLogs(next.logs || []);
+        setIsDone(next.status === 'completed');
+      } catch (error) {
+        if (!cancelled) setLogs((items) => [...items, `[${new Date().toLocaleTimeString()}] ${error instanceof Error ? error.message : '状态读取失败'}`]);
+      }
+    };
+    poll();
+    const timer = window.setInterval(poll, 800);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [jobId, stages.length]);
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[9999] p-4 select-none">
@@ -225,7 +169,7 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
               {progress}%
             </div>
             <div className="text-[10px] text-neutral-500 font-mono">
-              {isDone ? '计算完成' : '预计剩余 ~18 秒'}
+              {isDone ? '计算完成' : job?.status === 'failed' ? '执行失败' : 'COLMAP + Brush 实时执行'}
             </div>
           </div>
         </div>
@@ -337,7 +281,7 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
                 <Cpu className="w-3.5 h-3.5 text-blue-400" />
                 <span>计算引擎实时输出 (Engine Terminal Log)</span>
               </span>
-              <span className="text-[10px] text-neutral-500 font-mono">RTX 4090 · 48GB VRAM</span>
+              <span className="text-[10px] text-neutral-500 font-mono">pycolmap · Brush · 本地</span>
             </div>
             <div className="h-28 rounded-xl bg-[#111217] border border-[#282B38] p-3 overflow-y-auto font-mono text-[11px] text-emerald-400 leading-relaxed space-y-1">
               {logs.map((log, idx) => (
@@ -355,6 +299,8 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
                 <CheckCircle2 className="w-4 h-4" />
                 <span>重建计算已完成，成果模型与瓦片已生成！</span>
               </span>
+            ) : job?.status === 'failed' ? (
+              <span className="text-red-300 font-medium">重建失败：{job.error || '请检查照片重叠度和本地依赖'}</span>
             ) : (
               <span>任务执行中，请勿关闭窗口...</span>
             )}
@@ -369,19 +315,11 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleInstantFinish}
-                  className="px-3.5 py-2 text-xs text-amber-300 hover:text-amber-200 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors flex items-center gap-1.5"
-                  title="跳过计算等待，立即生成成果瓦片"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span>跳过等待直接出图</span>
-                </button>
               </>
             ) : null}
 
             <button
-              onClick={onFinish}
+              onClick={() => job && onFinish(job)}
               disabled={!isDone}
               className={`px-5 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-md transition-all cursor-pointer ${
                 isDone

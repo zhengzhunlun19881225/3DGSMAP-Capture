@@ -118,6 +118,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
         alt: baseAlt + (Math.random() - 0.5) * 1.5,
         focalLength: 24,
         isCalibrated: true,
+        file,
       };
     });
   };
