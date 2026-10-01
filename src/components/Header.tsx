@@ -42,11 +42,11 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2 group text-left cursor-pointer focus:outline-none"
         >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-inner shadow-white/20">
-            <span className="font-bold text-white text-base tracking-tighter">M</span>
+            <span className="font-bold text-white text-xs tracking-tighter">3D</span>
           </div>
           <div>
             <span className="text-base font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors">
-              MipMap 3D SDK
+              3DGSMAP
             </span>
             <span className="hidden sm:inline-block ml-2 text-xs text-neutral-400 font-normal">
               v3.2.3 Core

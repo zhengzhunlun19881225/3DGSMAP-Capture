@@ -38,7 +38,7 @@ export const DeveloperSdkHub: React.FC = () => {
 
   const handleExecute = () => {
     setIsRunning(true);
-    setExecutionOutput('Connecting to MipMap Reconstruct Engine Core...\nDispatching payload to compute node (Node-GPU-RTX4090-01)...\n');
+    setExecutionOutput('Connecting to 3DGSMAP Reconstruct Engine Core...\nDispatching payload to compute node (Node-GPU-RTX4090-01)...\n');
     setTimeout(() => {
       setExecutionOutput(
         (prev) =>

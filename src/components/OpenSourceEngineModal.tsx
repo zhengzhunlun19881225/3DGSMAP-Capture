@@ -32,7 +32,7 @@ export const OpenSourceEngineModal: React.FC<OpenSourceEngineModalProps> = ({ on
 
   const PIPELINE_SCRIPT = `#!/usr/bin/env python3
 """
-MipMap 3D 空间重建自动化开源流水线脚本
+3DGSMAP 3D 空间重建自动化开源流水线脚本
 整合: COLMAP (空三平差) + gsplat / 3DGS (高斯泼溅) + OpenMVS (网格纹理) + GDAL (正射DOM)
 """
 import os
@@ -137,7 +137,7 @@ RUN git clone https://github.com/colmap/colmap.git /tmp/colmap \\
 RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121 \\
     && pip3 install --no-cache-dir gsplat pycolmap opencv-python-headless plyfile
 
-# 5. 挂载 MipMap 重建流水线服务
+# 5. 挂载 3DGSMAP 重建流水线服务
 WORKDIR /app
 COPY pipeline.py /app/pipeline.py
 ENTRYPOINT ["python3", "/app/pipeline.py"]
