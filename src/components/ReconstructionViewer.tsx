@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
+import { GaussianResultViewport, GaussianViewportHandle } from './GaussianResultViewport';
+import { INITIAL_TASKS } from '../data/mockData';
 import {
   Download,
   Camera,
@@ -58,6 +59,8 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
   activeLeftTab,
   onChangeLeftTab,
 }) => {
+  const realViewportRef = useRef<GaussianViewportHandle>(null);
+  const isDemo = !activeTask.pipelineJobId && !activeTask.artifactUrl && INITIAL_TASKS.some((task) => task.id === activeTask.id);
   const mountRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'GS' | 'AT' | 'Mesh' | 'Point'>('GS');
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -85,7 +88,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
 
   // Initialize Three.js 3D Scene
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (!isDemo || !mountRef.current) return;
     const container = mountRef.current;
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
@@ -418,35 +421,19 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
       domElement.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
+      scene.traverse((object) => {
+        const drawable = object as THREE.Mesh;
+        drawable.geometry?.dispose();
+        const materials = drawable.material ? (Array.isArray(drawable.material) ? drawable.material : [drawable.material]) : [];
+        materials.forEach((material) => material.dispose());
+      });
       renderer.dispose();
+      domElement.remove();
+      rendererRef.current = null;
+      cameraRef.current = null;
+      meshGroupRef.current = splatGroupRef.current = atGroupRef.current = null;
     };
-  }, []);
-
-  // Replace the placeholder point cloud with the PLY produced by the local pipeline.
-  useEffect(() => {
-    if (!activeTask.artifactUrl || !splatGroupRef.current) return;
-    const group = splatGroupRef.current;
-    const loader = new PLYLoader();
-    loader.load(
-      activeTask.artifactUrl,
-      (geometry) => {
-        group.clear();
-        geometry.computeBoundingSphere();
-        const radius = geometry.boundingSphere?.radius || 10;
-        const material = new THREE.PointsMaterial({
-          size: Math.max(radius * 0.0015, 0.012),
-          vertexColors: Boolean(geometry.getAttribute('color')),
-          color: 0xdbeafe,
-          sizeAttenuation: true,
-        });
-        const cloud = new THREE.Points(geometry, material);
-        group.add(cloud);
-        showToast(`已加载真实高斯 PLY（${geometry.getAttribute('position')?.count.toLocaleString() || 0} 个点）`);
-      },
-      undefined,
-      () => showToast('PLY 成果加载失败，请检查本地 API 是否仍在运行'),
-    );
-  }, [activeTask.artifactUrl]);
+  }, [isDemo]);
 
   // Synchronize view mode with active task's template
   useEffect(() => {
@@ -481,11 +468,11 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
       splatGroupRef.current.visible = layerResults;
       atGroupRef.current.visible = layerPhotos;
     }
-  }, [viewMode, layerResults, layerPhotos]);
+  }, [viewMode, layerResults, layerPhotos, isDemo]);
 
   const handleCaptureSnapshot = () => {
-    if (!rendererRef.current) return;
-    const dataUrl = rendererRef.current.domElement.toDataURL('image/png');
+    const dataUrl = activeTask.artifactUrl ? realViewportRef.current?.snapshot() : rendererRef.current?.domElement.toDataURL('image/png');
+    if (!dataUrl) return;
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = `${activeTask.name}_snapshot_${Date.now()}.png`;
@@ -494,6 +481,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
   };
 
   const handleResetCamera = () => {
+    if (activeTask.artifactUrl) { realViewportRef.current?.reset(); return; }
     if (!cameraRef.current) return;
     cameraRef.current.position.set(0, 35, 60);
     cameraRef.current.lookAt(0, 0, 0);
@@ -518,12 +506,12 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                 }`}
               >
                 <div className="w-9 h-7 rounded bg-black/40 overflow-hidden relative border border-white/10 shrink-0">
-                  <img
+                  {task.thumbnailUrl ? <img
                     src={task.thumbnailUrl}
                     alt={task.name}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
-                  />
+                  /> : <Camera className="w-6 h-6 text-blue-300 mx-auto" />}
                   <span className="absolute bottom-0 right-0 text-[8px] bg-blue-600 text-white px-1 leading-none">
                     GS
                   </span>
@@ -646,7 +634,8 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                       <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#252832]">
                         <input
                           type="checkbox"
-                          checked={layerPhotos}
+                          disabled={!isDemo}
+                          checked={isDemo && layerPhotos}
                           onChange={(e) => setLayerPhotos(e.target.checked)}
                           className="rounded bg-[#2B2D37] border-[#383B47] text-blue-500 focus:ring-0"
                         />
@@ -716,7 +705,14 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
         {/* Center 3D Interactive Viewport */}
         <div className="flex-1 relative overflow-hidden bg-[#121316]">
           {/* WebGL Canvas Container */}
-          <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+          {activeTask.artifactUrl ? (
+            <GaussianResultViewport ref={realViewportRef} url={activeTask.artifactUrl} mode={viewMode} visible={layerResults} />
+          ) : isDemo ? (
+            <><div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+              <div className="absolute top-16 left-4 text-xs text-amber-300">演示场景 · 非照片重建成果</div></>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-400">尚无重建成果，请导入照片并完成训练</div>
+          )}
 
           {/* Top Left Floating: Export Button & Model Metadata HUD */}
           <div className="absolute top-4 left-4 z-20 flex items-center gap-2.5 flex-wrap">
@@ -737,7 +733,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </div>
                   <button
                     onClick={() => {
-                      showToast('正在打包 3DGS PlayCanvas LOD 成果产物...');
+                      showToast('当前未生成此格式，请下载真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -747,7 +743,12 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      showToast('正在导出高精 3DGS PLY 原始高斯格式...');
+                      if (activeTask.artifactUrl) {
+                        const link = document.createElement('a');
+                        link.href = activeTask.artifactUrl;
+                        link.download = `${activeTask.name}.ply`;
+                        link.click();
+                      } else showToast('此任务尚无可下载的真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -757,7 +758,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      showToast('正在导出 3D Tiles (B3DM) 倾斜摄影瓦片...');
+                      showToast('当前未生成此格式，请下载真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -767,7 +768,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      showToast('正在打包 OSGB 倾斜摄影格式...');
+                      showToast('当前未生成此格式，请下载真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -780,7 +781,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </div>
                   <button
                     onClick={() => {
-                      showToast('正在下载 DOM 数字正射影像 GeoTIFF...');
+                      showToast('当前未生成此格式，请下载真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -790,7 +791,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      showToast('正在下载稠密激光点云 (LAS)...');
+                      showToast('当前未生成此格式，请下载真实 PLY 成果');
                       setShowExportMenu(false);
                     }}
                     className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-[#2C2F3A] text-neutral-200 hover:text-white flex items-center justify-between"
@@ -823,7 +824,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   水域平整
                 </span>
               )}
-              {activeTask.params.humanRemoval && (
+              {isDemo && activeTask.params.humanRemoval && (
                 <span className="text-[10px] text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/30">
                   人物消除
                 </span>
@@ -921,8 +922,9 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
             {/* View Mode Toggle: AT vs GS vs Mesh vs Point Cloud */}
             <div className="flex items-center bg-[#252832] rounded-lg p-0.5 border border-[#353946]">
               <button
+                disabled={!isDemo}
                 onClick={() => setViewMode('AT')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                   viewMode === 'AT' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-neutral-200'
                 }`}
                 title="空三相机与航线视锥"
@@ -931,7 +933,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
               </button>
               <button
                 onClick={() => setViewMode('GS')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                   viewMode === 'GS' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-neutral-200'
                 }`}
                 title="3D 高斯泼溅 (Gaussian Splatting)"
@@ -939,8 +941,9 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                 GS
               </button>
               <button
+                disabled={!isDemo}
                 onClick={() => setViewMode('Mesh')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                   viewMode === 'Mesh' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-neutral-200'
                 }`}
                 title="三角网格三维模型"
@@ -949,10 +952,10 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
               </button>
               <button
                 onClick={() => setViewMode('Point')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                   viewMode === 'Point' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-neutral-200'
                 }`}
-                title="稠密激光点云"
+                title="高斯中心点与颜色（调试视图）"
               >
                 Point
               </button>
@@ -977,7 +980,8 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
             </button>
             <button
               onClick={() => {
-                if (cameraRef.current) {
+                if (activeTask.artifactUrl) realViewportRef.current?.zoom(0.85);
+                else if (cameraRef.current) {
                   cameraRef.current.position.multiplyScalar(0.85);
                 }
               }}
@@ -988,7 +992,8 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
             </button>
             <button
               onClick={() => {
-                if (cameraRef.current) {
+                if (activeTask.artifactUrl) realViewportRef.current?.zoom(1.15);
+                else if (cameraRef.current) {
                   cameraRef.current.position.multiplyScalar(1.15);
                 }
               }}
@@ -1048,9 +1053,9 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-[#252731]">
-                <span className="text-neutral-400">成果质量:</span>
+                <span className="text-neutral-400">{activeTask.artifactUrl ? '训练档位:' : '成果质量:'}</span>
                 <span className="text-neutral-200">
-                  {activeTask.quality === 'ultra' ? '超高' : activeTask.quality === 'high' ? '高' : '中'}
+                  {activeTask.artifactUrl ? ({ preview: '快速预览', balanced: '均衡', quality: '完整质量' }[activeTask.params.performanceProfile || 'preview']) : (activeTask.quality === 'ultra' ? '超高' : activeTask.quality === 'high' ? '高' : '中')}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-[#252731]">
@@ -1119,7 +1124,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
                   <div>
                     <div className="text-[10px] text-neutral-500">重投影误差</div>
                     <div className="font-mono text-emerald-400">
-                      {activeTask.reportSummary.meanReprojectionError > 0 ? `${activeTask.reportSummary.meanReprojectionError} px` : '—'}
+                      {activeTask.reportSummary.meanReprojectionError > 0 ? `${activeTask.reportSummary.meanReprojectionError.toFixed(3)} px` : '—'}
                     </div>
                   </div>
                   <div>
@@ -1142,7 +1147,7 @@ export const ReconstructionViewer: React.FC<ReconstructionViewerProps> = ({
             <div className="pt-2 space-y-2">
               <button
                 onClick={() => activeTask.artifactUrl
-                  ? showToast('真实 PLY 已在三维视口加载')
+                  ? (setViewMode('GS'), realViewportRef.current?.reset())
                   : showToast('请先导入照片并完成 COLMAP + Brush 重建')}
                 className="w-full h-8 px-3 bg-[#242731] hover:bg-[#2C303D] border border-[#333744] text-xs font-medium rounded-lg text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >

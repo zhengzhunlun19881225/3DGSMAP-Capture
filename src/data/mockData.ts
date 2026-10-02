@@ -12,38 +12,7 @@ export const ASSET_TERRAIN = '/src/assets/images/survey_aerial_terrain_179082540
 export const ASSET_ORTHOPHOTO = '/src/assets/images/orthophoto_satellite_map_1790825420592.jpg';
 export const ASSET_DRONE_PHOTO = '/src/assets/images/drone_inspection_photo_1790825437111.jpg';
 
-export const INITIAL_PROJECTS: Project[] = [
-  {
-    id: 'proj-3dgs',
-    name: '3dgs',
-    badge: 'GS',
-    updatedAt: '6 天前更新',
-    taskCount: 5,
-    photoCount: 380,
-    thumbnailUrl: ASSET_TERRAIN,
-    description: '崇山峻岭公路段 3D 高斯泼溅 (3DGS) 与实景三维高精重建项目',
-  },
-  {
-    id: 'proj-smartpark',
-    name: 'SmartPark-DigitalTwin',
-    badge: 'MESH+GS',
-    updatedAt: '2 天前更新',
-    taskCount: 3,
-    photoCount: 642,
-    thumbnailUrl: ASSET_ORTHOPHOTO,
-    description: '高新技术产业园区倾斜摄影、B3DM 白模融合与毫米级高斯视效',
-  },
-  {
-    id: 'proj-bridge-inspect',
-    name: 'Bridge-Structural-Inspect',
-    badge: 'LAS',
-    updatedAt: '12 小时前更新',
-    taskCount: 2,
-    photoCount: 420,
-    thumbnailUrl: ASSET_DRONE_PHOTO,
-    description: '特大跨海大桥桥墩与钢箱梁结构激光雷达与可见光密集重建',
-  },
-];
+export const INITIAL_PROJECTS: Project[] = [];
 
 export const INITIAL_TASKS: ReconstructionTask[] = [
   {

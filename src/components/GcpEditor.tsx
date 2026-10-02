@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   ArrowLeft,
   Trash2,
@@ -17,31 +17,41 @@ import {
   Plus,
 } from 'lucide-react';
 import { GroundControlPoint, PhotoAsset } from '../types/reconstruction';
-import { MOCK_GCPS, MOCK_PHOTOS } from '../data/mockData';
+import { MOCK_GCPS } from '../data/mockData';
+import { useTaskPhotos } from '../lib/useTaskPhotos';
 
 interface GcpEditorProps {
+  photos: PhotoAsset[];
+  jobId?: string;
   onBack: () => void;
   onOpenCrsModal: () => void;
   currentCrs: string;
 }
 
 export const GcpEditor: React.FC<GcpEditorProps> = ({
+  photos: taskPhotos,
+  jobId,
   onBack,
   onOpenCrsModal,
   currentCrs,
 }) => {
-  const [photos, setPhotos] = useState<PhotoAsset[]>(MOCK_PHOTOS);
-  const [selectedPhoto, setSelectedPhoto] = useState<PhotoAsset>(MOCK_PHOTOS[0]);
+  const { photos, message: photoMessage } = useTaskPhotos(taskPhotos, jobId);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const selectedPhoto = photos.find(photo => photo.id === selectedPhotoId) || photos[0];
   const [gcps, setGcps] = useState<GroundControlPoint[]>(MOCK_GCPS);
   const [selectedGcpId, setSelectedGcpId] = useState<string>('gcp-1');
   const [usePosPrior, setUsePosPrior] = useState(true);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationComplete, setOptimizationComplete] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [markerPos, setMarkerPos] = useState<{ x: number; y: number } | null>({ x: 50, y: 45 });
+  const [markerPos, setMarkerPos] = useState<{ x: number; y: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setMarkerPos(null);
+    setZoomLevel(1);
+  }, [selectedPhoto?.id]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -50,7 +60,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
 
   // Clicking on photo to prick GCP point
   const handlePhotoClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !selectedPhoto) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
@@ -110,22 +120,15 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
         <div className="w-64 bg-[#18191E] border-r border-[#272932] flex flex-col shrink-0">
           <div className="h-10 border-b border-[#272932] px-3 flex items-center justify-between bg-[#1B1C22]">
             <span className="text-xs font-semibold text-white">照片列表 ({photos.length})</span>
-            <button
-              onClick={() => showToast('已清空已选列表')}
-              className="text-neutral-500 hover:text-rose-400 transition-colors"
-              title="清除照片"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {photos.map((photo) => {
-              const isSelected = photo.id === selectedPhoto.id;
+              const isSelected = photo.id === selectedPhoto?.id;
               return (
                 <div
                   key={photo.id}
-                  onClick={() => setSelectedPhoto(photo)}
+                  onClick={() => setSelectedPhotoId(photo.id)}
                   className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
                     isSelected
                       ? 'bg-[#252834] border-blue-500 ring-1 ring-blue-500/40'
@@ -137,6 +140,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
                       src={photo.url}
                       alt={photo.name}
                       referrerPolicy="no-referrer"
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                     {photo.markedGCPs && photo.markedGCPs.length > 0 && (
@@ -158,7 +162,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Top Half: Photo Inspection & Prick Canvas */}
           <div className="flex-1 bg-[#0F1012] relative overflow-hidden flex items-center justify-center p-4">
-            <div
+            {selectedPhoto ? <div
               ref={canvasRef}
               onClick={handlePhotoClick}
               style={{ transform: `scale(${zoomLevel})` }}
@@ -166,7 +170,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
             >
               <img
                 src={selectedPhoto.url}
-                alt="Active inspection"
+                alt={`当前影像：${selectedPhoto.name}`}
                 referrerPolicy="no-referrer"
                 className="max-h-[46vh] object-contain select-none"
               />
@@ -192,7 +196,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
                   </div>
                 </div>
               )}
-            </div>
+            </div> : <div className="text-sm text-neutral-500">{photoMessage || '当前任务尚未上传照片，请返回导入照片'}</div>}
 
             {/* Floating Zoom / Pan Controls matching Screenshot 8 */}
             <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 bg-[#1B1D23]/90 backdrop-blur-md p-1 rounded-lg border border-[#323642] shadow-lg">
@@ -220,10 +224,10 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
             </div>
 
             {/* Instruction badge */}
-            <div className="absolute top-4 left-4 z-20 px-3 py-1 rounded-md bg-black/70 backdrop-blur text-xs text-neutral-300 border border-white/10 flex items-center gap-2">
+            {selectedPhoto && <div className="absolute top-4 left-4 z-20 px-3 py-1 rounded-md bg-black/70 backdrop-blur text-xs text-neutral-300 border border-white/10 flex items-center gap-2">
               <Crosshair className="w-3.5 h-3.5 text-red-400" />
               <span>在影像特征点上单击十字光标完成刺点</span>
-            </div>
+            </div>}
           </div>
 
           {/* Bottom Half: GCP Table and Bundle Adjustment matching Screenshot 8 */}
@@ -350,7 +354,7 @@ export const GcpEditor: React.FC<GcpEditorProps> = ({
 
               <button
                 onClick={handleRunOptimization}
-                disabled={isOptimizing}
+                disabled={isOptimizing || !selectedPhoto}
                 className="h-8 px-6 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-semibold rounded-lg flex items-center gap-2 shadow-md transition-colors cursor-pointer"
               >
                 {isOptimizing ? (

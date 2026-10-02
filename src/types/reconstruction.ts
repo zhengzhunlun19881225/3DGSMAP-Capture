@@ -6,7 +6,7 @@ export type ReconstructionStatus = 'ready' | 'processing' | 'completed' | 'faile
 
 export interface ReconstructionJob {
   id: string;
-  status: ReconstructionStatus;
+  status: ReconstructionStatus | 'queued';
   progress: number;
   stage: number;
   logs: string[];
@@ -15,6 +15,18 @@ export interface ReconstructionJob {
   sparse_points?: number;
   mean_reprojection_error?: number;
   error?: string;
+  phase?: string;
+  image_count?: number;
+  feature_images?: number;
+  training_step?: number;
+  training_total?: number;
+  steps_per_second?: number | null;
+  eta_seconds?: number | null;
+  created_at?: number;
+  started_at?: number;
+  finished_at?: number;
+  config?: { label: string; steps: number; maxResolution: number; maxGaussianPoints: number; profile?: 'preview' | 'balanced' | 'quality' };
+
 }
 
 export type TemplateType = 'at' | 'mesh' | 'gaussian_splat' | 'fast_2d' | 'fast_3d';
@@ -60,6 +72,8 @@ export interface GroundControlPoint {
 }
 
 export interface ReconstructionParams {
+  performanceProfile?: 'preview' | 'balanced' | 'quality';
+  matchingMode?: 'exhaustive' | 'sequential';
   name: string;
   taskType: TaskType;
   quality: QualityLevel;

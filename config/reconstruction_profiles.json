@@ -1,0 +1,41 @@
+{
+  "preview": {
+    "label": "快速预览",
+    "steps": 3000,
+    "maxResolution": 960,
+    "maxGaussianPoints": 500000,
+    "shDegree": 1,
+    "sfmMaxSize": 1600,
+    "sfmFeatures": 4096,
+    "firstOctave": 0,
+    "exportEvery": 1000,
+    "refineEvery": 50,
+    "growthStopRatio": 0.75
+  },
+  "balanced": {
+    "label": "均衡",
+    "steps": 8000,
+    "maxResolution": 1280,
+    "maxGaussianPoints": 1000000,
+    "shDegree": 2,
+    "sfmMaxSize": 2000,
+    "sfmFeatures": 6144,
+    "firstOctave": 0,
+    "exportEvery": 2000,
+    "refineEvery": 100,
+    "growthStopRatio": 0.65
+  },
+  "quality": {
+    "label": "完整质量",
+    "steps": 30000,
+    "maxResolution": 1920,
+    "maxGaussianPoints": 4000000,
+    "shDegree": 3,
+    "sfmMaxSize": 3200,
+    "sfmFeatures": 8192,
+    "firstOctave": -1,
+    "exportEvery": 5000,
+    "refineEvery": 200,
+    "growthStopRatio": 0.5
+  }
+}

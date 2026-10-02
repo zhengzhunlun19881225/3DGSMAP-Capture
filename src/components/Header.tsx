@@ -6,9 +6,6 @@ import {
   Cloud,
   Layers,
   Code2,
-  MapPin,
-  FileCheck2,
-  SplitSquareVertical,
   CheckCircle2,
 } from 'lucide-react';
 import { ComputationMode } from '../types/reconstruction';
@@ -67,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {/* Zone 2: 4-6 Clean text navigation links with subtle underline/active state */}
+      {/* Zone 2: Project list and developer SDK navigation */}
       <nav className="hidden md:flex items-center gap-1 xl:gap-2">
         <button
           onClick={() => onSelectTab('projects')}
@@ -79,54 +76,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Layers className="w-3.5 h-3.5" />
           <span>项目列表</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('viewer')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === 'viewer'
-              ? 'text-white bg-[#262830]'
-              : 'text-neutral-400 hover:text-neutral-200 hover:bg-[#202227]'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>三维重建工作台</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('gcp')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === 'gcp'
-              ? 'text-white bg-[#262830]'
-              : 'text-neutral-400 hover:text-neutral-200 hover:bg-[#202227]'
-          }`}
-        >
-          <MapPin className="w-3.5 h-3.5" />
-          <span>像控点刺点</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('dual')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === 'dual'
-              ? 'text-white bg-[#262830]'
-              : 'text-neutral-400 hover:text-neutral-200 hover:bg-[#202227]'
-          }`}
-        >
-          <SplitSquareVertical className="w-3.5 h-3.5" />
-          <span>双屏对比</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('report')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === 'report'
-              ? 'text-white bg-[#262830]'
-              : 'text-neutral-400 hover:text-neutral-200 hover:bg-[#202227]'
-          }`}
-        >
-          <FileCheck2 className="w-3.5 h-3.5" />
-          <span>空三报告</span>
         </button>
 
         <button

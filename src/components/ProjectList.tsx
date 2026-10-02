@@ -7,7 +7,6 @@ import {
   List as ListIcon,
   RotateCw,
   Plus,
-  Cloud,
   HardDrive,
   MoreVertical,
   ChevronRight,
@@ -17,9 +16,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Project } from '../types/reconstruction';
+import { ProjectThumbnail } from './ProjectThumbnail';
 
 interface ProjectListProps {
-  projects: Project[];
+  projects: (Project & { thumbnailJobId?: string })[];
   onSelectProject: (project: Project) => void;
   onCreateProject: (name: string, description: string) => void;
 }
@@ -133,7 +133,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
             className="h-8 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-md flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ 新建项目</span>
+            <span>新建项目</span>
           </button>
         </div>
       </div>
@@ -156,19 +156,9 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 className="group h-16 bg-[#23242A] hover:bg-[#282A31] border border-[#2F323A] rounded-md px-4 flex items-center justify-between cursor-pointer transition-all duration-150"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  {/* Cloud / Storage status indicator */}
-                  <div className="w-7 h-7 rounded bg-[#2D2F38] flex items-center justify-center text-neutral-400 group-hover:text-blue-400 transition-colors">
-                    <Cloud className="w-4 h-4" />
-                  </div>
-
                   {/* Thumbnail */}
                   <div className="w-12 h-10 rounded overflow-hidden bg-black/40 border border-[#383B46] shrink-0 relative">
-                    <img
-                      src={project.thumbnailUrl}
-                      alt={project.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    <ProjectThumbnail src={project.thumbnailUrl} jobId={project.thumbnailJobId} name={project.name} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </div>
 
@@ -219,12 +209,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 className="group bg-[#23242A] hover:bg-[#282A31] border border-[#2F323A] rounded-lg overflow-hidden cursor-pointer transition-all duration-150 flex flex-col"
               >
                 <div className="h-40 relative overflow-hidden bg-black/60">
-                  <img
-                    src={project.thumbnailUrl}
-                    alt={project.name}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <ProjectThumbnail src={project.thumbnailUrl} jobId={project.thumbnailJobId} name={project.name} />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#23242A] via-transparent to-black/20" />
                   <span className="absolute top-3 left-3 text-[11px] font-mono px-2 py-0.5 rounded bg-black/70 backdrop-blur text-blue-300 border border-white/10">
                     {project.badge}

@@ -11,6 +11,9 @@ importers:
       '@google/genai':
         specifier: ^2.4.0
         version: 2.24.0
+      '@sparkjsdev/spark':
+        specifier: ^2.3.0
+        version: 2.3.0(three@0.186.1)
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.1(@types/node@22.20.4)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.23.15))
@@ -543,6 +546,11 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@sparkjsdev/spark@2.3.0':
+    resolution: {integrity: sha512-jixvnea2E9dpjwLG8einXkfhyEKo99QPvaMWsk/9c+homKV/qmywY/1g5YJHfH2/XNIyYyebfiAYW8vwPLtZgQ==}
+    peerDependencies:
+      three: '>=0.180.0'
 
   '@tailwindcss/node@4.3.3':
     resolution: {integrity: sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg==}
@@ -1859,6 +1867,11 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@sparkjsdev/spark@2.3.0(three@0.186.1)':
+    dependencies:
+      fflate: 0.8.3
+      three: 0.186.1
 
   '@tailwindcss/node@4.3.3':
     dependencies:

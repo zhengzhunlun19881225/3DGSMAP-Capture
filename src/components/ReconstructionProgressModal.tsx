@@ -12,7 +12,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { ReconstructionJob, ReconstructionTask } from '../types/reconstruction';
-import { reconstructionApi } from '../lib/reconstructionApi';
+import { readReconstructionJob } from '../lib/reconstructionApi';
 
 interface ReconstructionProgressModalProps {
   task: ReconstructionTask;
@@ -33,110 +33,48 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
   const [isDone, setIsDone] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
 
-  const templateName =
-    task.params.template === 'gaussian_splat'
-      ? '高斯泼溅 (3DGS)'
-      : task.params.template === 'mesh'
-      ? '实景三维网格 (Mesh)'
-      : task.params.template === 'fast_2d'
-      ? '快速二维正射 (DOM)'
-      : task.params.template === 'at'
-      ? '仅空三平差 (AT)'
-      : '快速三维预览';
-
-  // Stages tailored specifically to the chosen template
-  const getStages = () => {
-    const baseStage1 = {
-      title: '空三解算与光束法平差 (Bundle Adjustment)',
-      desc: `SIFT 特征提取匹配 (${task.photoCount} 张影像) · 自由网平差与 POS 先验约束`,
-    };
-
-    if (task.params.template === 'gaussian_splat') {
-      return [
-        baseStage1,
-        {
-          title: '3DGS 高斯泼溅致密化训练 (Gaussian Training)',
-          desc: `迭代学习 30,000 步 · ${task.params.maxGaussianPointsMode === 'auto' ? '自适应点数' : `${(task.params.customMaxPoints / 1000000).toFixed(1)}M点`} · ${task.params.humanRemoval ? '动态行人消除滤波' : '全场景着色'}`,
-        },
-        {
-          title: '空间视锥剪枝与球谐系数压缩 (SH Compression)',
-          desc: '优化透明度与各向异性协方差矩阵 · 剔除不可视浮空噪点',
-        },
-        {
-          title: '成果导出与 PlayCanvas / PLY 瓦片流化',
-          desc: `打包 ${task.params.gaussianFormats.join(', ')} 成果格式`,
-        },
-      ];
-    } else if (task.params.template === 'mesh') {
-      return [
-        baseStage1,
-        {
-          title: '密集几何点云重建 (Dense Matching)',
-          desc: '多视立体视觉 MVS 密集深度图估计 · 稠密点云过滤',
-        },
-        {
-          title: '泊松三角网构网与水域平整 (Mesh Reconstruction)',
-          desc: `TIN 空间三角剖分 · ${task.params.waterFlattening ? '水面自动识别平整' : '原始曲面'} · 几何简化率 ${task.params.meshSimplifyRatio}%`,
-        },
-        {
-          title: '纹理映射烘焙与 3D Tiles / OSGB 瓦片分块',
-          desc: `贴图 UV 解包与白模纹理贴附 · 输出 ${task.params.meshFormats.join(', ')}`,
-        },
-      ];
-    } else if (task.params.template === 'fast_2d') {
-      return [
-        baseStage1,
-        {
-          title: '真正射纠正与数字表面模型生成 (DSM)',
-          desc: '高程点内插与局部微地貌三角化 · DSM 栅格高程图解算',
-        },
-        {
-          title: '数字正射影像图辐射校正与匀色 (Color Balancing)',
-          desc: `自动航带接缝线消除 · 像元分辨率 ${task.params.domResolutionCm}cm/px`,
-        },
-        {
-          title: 'GeoTIFF / MBTiles 正射金字塔切片',
-          desc: `构建 ${task.params.crs} 坐标系空间瓦片`,
-        },
-      ];
-    } else {
-      return [
-        baseStage1,
-        {
-          title: '连接点云生成与精度检核',
-          desc: '高精连接点提取与重投影中误差收敛评估',
-        },
-        {
-          title: '相机位姿视锥与检校内参输出',
-          desc: '导出外方位元素 (POS) 与像控点检核报告',
-        },
-      ];
-    }
-  };
-
-  const stages = getStages();
+  const templateName = '高斯泼溅 (3DGS)';
+  const stages = [
+    { title: 'COLMAP 特征提取、匹配与相机解算', desc: '按照片内容缓存解算结果；重复训练可复用' },
+    { title: 'Brush 高斯训练', desc: job?.config
+      ? `${job.config.label} · ${job.config.steps.toLocaleString()} 步 · ${job.config.maxResolution}px · 最多 ${job.config.maxGaussianPoints.toLocaleString()} 点`
+      : '读取实际训练配置中（旧服务不提供逐步进度）' },
+    { title: '最终 PLY 导出', desc: '训练中定期保存中间 PLY，结束后检查最终文件' },
+    { title: '成果就绪', desc: '最终 PLY 可下载并加载至三维视口' },
+  ];
+  const detail = job?.status === 'queued' ? '排队中：等待当前计算任务完成'
+    : job?.phase === 'extraction' ? `SIFT：${job.feature_images || 0} / ${job.image_count || task.photoCount} 张`
+    : job?.phase === 'training' ? `训练：${job.training_step || 0} / ${job.training_total || 0} 步${job.steps_per_second ? ` · ${job.steps_per_second} 步/秒` : ''}`
+    : job?.phase === 'matching' ? '影像匹配中'
+    : job?.phase === 'mapping' ? '相机解算中'
+    : '阶段进度（非实测完成比例）';
 
   useEffect(() => {
     if (!jobId) return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      let terminal = false;
       try {
-        const response = await fetch(`${reconstructionApi}/api/jobs/${jobId}`);
-        if (!response.ok) throw new Error('无法读取本地重建任务状态');
-        const next = await response.json() as ReconstructionJob;
+        const next = await readReconstructionJob(jobId, controller.signal);
         if (cancelled) return;
         setJob(next);
         setProgress(next.progress);
         setCurrentStageIndex(Math.min(stages.length - 1, next.stage));
         setLogs(next.logs || []);
         setIsDone(next.status === 'completed');
+        terminal = next.status === 'completed' || next.status === 'failed';
       } catch (error) {
-        if (!cancelled) setLogs((items) => [...items, `[${new Date().toLocaleTimeString()}] ${error instanceof Error ? error.message : '状态读取失败'}`]);
+        if (!cancelled) setLogs((items) => [...items.slice(-119), `状态连接失败：${error instanceof Error ? error.message : '稍后重试'}`]);
+      } finally {
+        clearTimeout(timeout);
+        if (!cancelled && !terminal) timer = setTimeout(poll, 2000);
       }
     };
     poll();
-    const timer = window.setInterval(poll, 800);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [jobId, stages.length]);
 
   return (
@@ -155,11 +93,11 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
                   {templateName}
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] bg-[#282B38] text-neutral-300 font-medium">
-                  {task.params.quality === 'ultra' ? '超高精度' : task.params.quality === 'high' ? '均衡质量' : '快速草图'}
+                  {job?.config?.label || '当前任务'}
                 </span>
               </div>
               <div className="text-[11px] text-neutral-400 mt-0.5">
-                正在执行三维重建流水线 · 计算模式: {task.computationMode === 'desktop' ? '单机本地 GPU' : task.computationMode === 'local_cluster' ? '本地多卡集群' : '弹性云端集群'}
+                本地流水线 · COLMAP CPU 解算 / Brush GPU 训练
               </div>
             </div>
           </div>
@@ -169,11 +107,14 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
               {progress}%
             </div>
             <div className="text-[10px] text-neutral-500 font-mono">
-              {isDone ? '计算完成' : job?.status === 'failed' ? '执行失败' : 'COLMAP + Brush 实时执行'}
+              {isDone ? '计算完成' : job?.phase === 'cancelled' ? '已取消' : job?.status === 'failed' ? '执行失败' : detail}
             </div>
           </div>
         </div>
 
+        {job?.eta_seconds != null && job.eta_seconds > 0 && (
+          <div className="px-6 py-2 text-xs text-neutral-400">按已观测训练速度估算剩余约 {Math.ceil(job.eta_seconds / 60)} 分钟（不含导出，速度会随点数变化）</div>
+        )}
         {/* Progress Bar */}
         <div className="h-1.5 w-full bg-[#242735]">
           <div
@@ -199,21 +140,13 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
             <div className="p-2.5 rounded-lg bg-[#222532] border border-[#2F3345]">
               <div className="text-[10px] text-neutral-400">特征优化项</div>
               <div className="text-neutral-200 font-medium mt-0.5 truncate">
-                {task.params.template === 'gaussian_splat'
-                  ? task.params.humanRemoval ? '人物消除开启' : '完整场景'
-                  : task.params.template === 'mesh'
-                  ? task.params.waterFlattening ? '水域平整开启' : `简化至${task.params.meshSimplifyRatio}%`
-                  : `分辨率 ${task.params.domResolutionCm}cm`}
+                完整场景（未实现自动人物消除）
               </div>
             </div>
             <div className="p-2.5 rounded-lg bg-[#222532] border border-[#2F3345]">
               <div className="text-[10px] text-neutral-400">输出成果格式</div>
               <div className="font-mono text-emerald-400 font-semibold mt-0.5 truncate">
-                {task.params.template === 'gaussian_splat'
-                  ? task.params.gaussianFormats.join(', ')
-                  : task.params.template === 'mesh'
-                  ? task.params.meshFormats.join(', ')
-                  : 'DOM (GeoTIFF)'}
+                PLY
               </div>
             </div>
           </div>
@@ -226,7 +159,7 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
             <div className="space-y-2">
               {stages.map((stage, idx) => {
                 const isPassed = currentStageIndex > idx || isDone;
-                const isCurrent = currentStageIndex === idx && !isDone;
+                const isCurrent = currentStageIndex === idx && job?.status === 'processing';
                 return (
                   <div
                     key={idx}
@@ -297,7 +230,7 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
             {isDone ? (
               <span className="text-emerald-400 font-medium flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>重建计算已完成，成果模型与瓦片已生成！</span>
+                <span>重建计算已完成，最终 PLY 已生成！</span>
               </span>
             ) : job?.status === 'failed' ? (
               <span className="text-red-300 font-medium">重建失败：{job.error || '请检查照片重叠度和本地依赖'}</span>
@@ -313,7 +246,7 @@ export const ReconstructionProgressModal: React.FC<ReconstructionProgressModalPr
                   onClick={onCancel}
                   className="px-3.5 py-2 text-xs text-neutral-400 hover:text-white rounded-lg hover:bg-[#282B38] transition-colors"
                 >
-                  取消
+                  收起（后台继续）
                 </button>
               </>
             ) : null}

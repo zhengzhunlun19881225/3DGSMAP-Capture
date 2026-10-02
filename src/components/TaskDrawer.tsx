@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import profiles from '../../config/reconstruction_profiles.json';
 import {
   ArrowLeft,
   Image as ImageIcon,
@@ -48,7 +49,7 @@ interface TaskDrawerProps {
   onBack: () => void;
   onOpenGcpModal: () => void;
   onOpenCrsModal: () => void;
-  onStartReconstruction: () => void;
+  onStartReconstruction: () => void | Promise<void>;
 }
 
 export const TaskDrawer: React.FC<TaskDrawerProps> = ({
@@ -220,6 +221,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
         <div className="h-12 border-b border-[#282A33] px-4 flex items-center gap-3 shrink-0">
           <button
             onClick={onBack}
+            aria-label="返回成果"
             className="p-1 text-neutral-400 hover:text-white rounded hover:bg-[#252731] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -428,29 +430,34 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               )}
             </div>
 
-            {/* Quality Selector matching Screenshot 4 */}
             <div>
-              <div className="text-neutral-400 mb-1.5">重建质量:</div>
+              <div className="text-neutral-400 mb-1.5">本地计算档位（默认快速预览）:</div>
               <div className="grid grid-cols-3 gap-1 bg-[#1A1C22] p-1 rounded-lg border border-[#2B2E38]">
-                {[
-                  { id: 'ultra', label: '超高 (最佳效果)' },
-                  { id: 'high', label: '高 (均衡)' },
-                  { id: 'medium', label: '中 (最快速度)' },
-                ].map((q) => (
-                  <button
-                    key={q.id}
-                    type="button"
-                    onClick={() => updateParam('quality', q.id as QualityLevel)}
-                    className={`py-1.5 text-center rounded-md font-medium transition-colors text-[11px] ${
-                      params.quality === q.id
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-neutral-400 hover:text-neutral-200'
-                    }`}
-                  >
-                    {q.label}
+                {(Object.keys(profiles) as Array<keyof typeof profiles>).map((id) => (
+                  <button key={id} type="button"
+                    onClick={() => updateParam('performanceProfile', id)}
+                    className={`py-1.5 rounded text-xs ${(params.performanceProfile || 'preview') === id ? 'bg-blue-600 text-white' : 'text-neutral-400'}`}>
+                    {profiles[id].label}
                   </button>
                 ))}
               </div>
+              <div className="mt-2 text-[11px] text-neutral-400 leading-relaxed">
+                {profiles[params.performanceProfile || 'preview'].steps.toLocaleString()} 步 ·
+                训练最长边 {profiles[params.performanceProfile || 'preview'].maxResolution}px ·
+                SIFT {profiles[params.performanceProfile || 'preview'].sfmMaxSize}px ·
+                自动上限 {profiles[params.performanceProfile || 'preview'].maxGaussianPoints.toLocaleString()} 点
+                <br />快速档优先验证场景，细节和解算完整度可能降低；完整质量保留 30,000 步。
+              </div>
+            </div>
+            <div>
+              <div className="text-neutral-400 mb-1.5">照片匹配方式:</div>
+              <select value={params.matchingMode || 'exhaustive'}
+                onChange={(event) => updateParam('matchingMode', event.target.value as 'exhaustive' | 'sequential')}
+                className="w-full rounded border border-[#2B2E38] bg-[#1A1C22] p-2 text-xs">
+                <option value="exhaustive">无序照片：全量匹配（更慢）</option>
+                <option value="sequential">有序航拍 / 视频帧：相邻匹配（更快）</option>
+              </select>
+              <div className="mt-1 text-[11px] text-neutral-500">相邻匹配要求文件名顺序对应拍摄顺序；无序照片请用全量匹配。</div>
             </div>
 
             {/* ROI / Sub-division */}
@@ -757,11 +764,10 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
           <button
             type="button"
             disabled={isReconstructing}
-            onClick={() => {
+            onClick={async () => {
               setIsReconstructing(true);
-              showNotice('正在启动重建流水线...');
-              onStartReconstruction();
-              setTimeout(() => setIsReconstructing(false), 1200);
+              try { await onStartReconstruction(); }
+              finally { setIsReconstructing(false); }
             }}
             className="w-full h-9 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white font-medium rounded-lg flex items-center justify-center gap-2 text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
           >
