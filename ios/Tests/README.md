@@ -1,5 +1,16 @@
 # 拍摄流程测试
 
+## 0.2.7 上传回归
+
+在 Mac 上运行（仅创建临时测试文件）：
+
+```sh
+swiftc -swift-version 5 ios/GSMapCapture/UploadFileWorker.swift ios/Tests/UploadFileWorkerTests.swift -o /tmp/gsmap-upload-tests
+/tmp/gsmap-upload-tests
+```
+
+覆盖 SHA-256 与4 MiB边界、缓存复用、原件变化拒绝、缓存失效、取消和原件保留。仓库 `Validate iOS capture` workflow 同时运行既有状态/存储测试和 iOS 模拟器编译；界面 watchdog 修复仍需真机 Instruments 复现验收。
+
 纯状态测试，在项目根目录运行：
 
 ```sh

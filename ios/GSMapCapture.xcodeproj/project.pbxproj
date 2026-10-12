@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB7B7F183A7EAD6300A40222 /* UploadFileWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7B7F183A7EAD6300A40111 /* UploadFileWorker.swift */; };
 		6A7B7F183A7EAD6300A40222 /* PhotoResolutionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */; };
 		0E003C3B0B5C324D87C272F9 /* TransferViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA5526FDB2466470DF588C9 /* TransferViews.swift */; };
 		236EA132C379CEEA8B89D193 /* CaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C6CE8822B4089E7662409 /* CaptureStore.swift */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FB7B7F183A7EAD6300A40111 /* UploadFileWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFileWorker.swift; sourceTree = "<group>"; };
 		6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoResolutionEncoder.swift; sourceTree = "<group>"; };
 		5D54C583540DEB28EFAEE56F /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
 		732F808FDE8C171BEA2197AB /* GSMapCaptureApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GSMapCaptureApp.swift; sourceTree = "<group>"; };
@@ -51,6 +53,7 @@
 				C62BEBFA85363400E6B36864 /* CaptureViews.swift */,
 				732F808FDE8C171BEA2197AB /* GSMapCaptureApp.swift */,
 				F1598B80166C2F12AE798920 /* MobileConnection.swift */,
+				FB7B7F183A7EAD6300A40111 /* UploadFileWorker.swift */,
 				CFA5526FDB2466470DF588C9 /* TransferViews.swift */,
 				9AC3B5AD93CBC0305C62F78F /* Info.plist */,
 			);
@@ -142,6 +145,7 @@
 				C824A85812B04CA39502867B /* CaptureViews.swift in Sources */,
 				7E19C8FCF7D23F1F3889AE35 /* GSMapCaptureApp.swift in Sources */,
 				DCCE5C5E59E61579E0AE0B06 /* MobileConnection.swift in Sources */,
+				FB7B7F183A7EAD6300A40222 /* UploadFileWorker.swift in Sources */,
 				0E003C3B0B5C324D87C272F9 /* TransferViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

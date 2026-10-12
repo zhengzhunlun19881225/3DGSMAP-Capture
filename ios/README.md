@@ -1,6 +1,8 @@
 # 3DGSMAP Capture · iPhone 原生采集
 
-当前版本 **0.2.6（build 8）**，最低 iOS 17。SwiftUI + AVFoundation + Core Motion，无第三方 iOS 依赖。
+当前源码版本 **0.2.7（build 9）**，最低 iOS 17。SwiftUI + AVFoundation + Core Motion，无第三方 iOS 依赖。
+
+本版改进大视频上传准备与界面响应：独立文件工作 actor、4 MiB 有界缓冲、校验缓存、独立进度区域和续传恢复。批次页面使用惰性布局，进度更新不再刷新整个素材列表。编译/回归由 `Validate iOS capture` workflow 执行；原有 0.2.6 真机分辨率报告不能作为本版上传或闪退修复验收。更新说明和待验收项目见 [CAPTURE_UPLOAD_UPDATE.md](../docs/CAPTURE_UPLOAD_UPDATE.md)。
 
 ## Mac 编译与安装
 
@@ -36,6 +38,8 @@ xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -sdk iphones
 客户端实现了局域网地址/密钥设置、分块上传、任务状态与 WebKit 成果查看。手机接入网关（如 `mobile_gateway.py`、`capture_ingest.py`）当前不在此仓库；不能将已有的 `server/reconstruction_server.py` 直接视为兼容的手机网关。
 
 如已有兼容网关，手机与电脑连接同一 Wi-Fi，在 App 填入实际电脑局域网地址和连接密钥，检查连接后上传。密钥存放在系统钥匙串；上传期间保持 App 在前台。
+
+档位保持 `preview` / `balanced` / `quality` 标识，显示 15,000 / 30,000 / 45,000 步；实际执行步数由电脑配置决定。本机 3DGSMAP 已按此映射部署。电脑的手机接入区域兼容现有上传协议，不要求 APP 增加通知接口。首次校验仍需读取原件，但显示已处理容量；已完整校验且未改变的文件可复用缓存。退出页面或进入后台会暂停，重试以电脑确认的分块为准。
 
 本次没有完成手机上传、断线续传、训练和三维成果端到端联调。电脑端现有独立流水线见仓库根目录 `README-local-pipeline.md`。
 

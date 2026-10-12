@@ -1,7 +1,7 @@
 {
   "preview": {
     "label": "快速预览",
-    "steps": 3000,
+    "steps": 15000,
     "maxResolution": 960,
     "maxGaussianPoints": 500000,
     "shDegree": 1,
@@ -14,7 +14,7 @@
   },
   "balanced": {
     "label": "均衡",
-    "steps": 8000,
+    "steps": 30000,
     "maxResolution": 1280,
     "maxGaussianPoints": 1000000,
     "shDegree": 2,
@@ -27,7 +27,7 @@
   },
   "quality": {
     "label": "完整质量",
-    "steps": 30000,
+    "steps": 45000,
     "maxResolution": 1920,
     "maxGaussianPoints": 4000000,
     "shDegree": 3,
