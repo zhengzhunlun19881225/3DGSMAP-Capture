@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AABB00000000000000000002 /* VideoLocalExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00000000000000000001; };
+		AABB00000000000000000004 /* VideoExportVerification.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00000000000000000003; };
 		FB7B7F183A7EAD6300A40222 /* UploadFileWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7B7F183A7EAD6300A40111 /* UploadFileWorker.swift */; };
 		6A7B7F183A7EAD6300A40222 /* PhotoResolutionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */; };
 		0E003C3B0B5C324D87C272F9 /* TransferViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA5526FDB2466470DF588C9 /* TransferViews.swift */; };
@@ -19,6 +21,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AABB00000000000000000001 /* VideoLocalExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLocalExport.swift; sourceTree = "<group>"; };
+		AABB00000000000000000003 /* VideoExportVerification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Tests/VideoExportVerification.swift; sourceTree = "<group>"; };
 		FB7B7F183A7EAD6300A40111 /* UploadFileWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFileWorker.swift; sourceTree = "<group>"; };
 		6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoResolutionEncoder.swift; sourceTree = "<group>"; };
 		5D54C583540DEB28EFAEE56F /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
@@ -46,6 +50,8 @@
 		1455444174429298B0F374B3 /* GSMapCapture */ = {
 			isa = PBXGroup;
 			children = (
+				AABB00000000000000000001 /* VideoLocalExport.swift */,
+				AABB00000000000000000003 /* VideoExportVerification.swift */,
 				6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */,
 				5D54C583540DEB28EFAEE56F /* CameraService.swift */,
 				DE26F589EB4F9C5E6AD93B7C /* CaptureModels.swift */,
@@ -138,6 +144,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABB00000000000000000002 /* VideoLocalExport.swift in Sources */,
+				AABB00000000000000000004 /* VideoExportVerification.swift in Sources */,
 				6A7B7F183A7EAD6300A40222 /* PhotoResolutionEncoder.swift in Sources */,
 				3AAD8675D49405B4BA454264 /* CameraService.swift in Sources */,
 				97C24F5B0CBC7CE6B4607338 /* CaptureModels.swift in Sources */,

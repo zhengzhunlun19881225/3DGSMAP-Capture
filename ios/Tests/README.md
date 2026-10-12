@@ -1,5 +1,13 @@
 # 拍摄流程测试
 
+## 0.2.8 视频本地导出
+
+UI 用例 `testVideoSaveToPhotosPreservesOriginalBytesAndIndex`、`testVideoFilesExportPreservesOriginalBytesAndIndex` 和 `testVideoFilesPickerCancellationPreservesOriginals` 使用显式启动参数 `--verify-video-export`，仅在 Debug **模拟器**上启用隔离测试界面。生成真实 1080p / 4K MOV，保存到相册或通过系统文件窗口复制，然后对比 SHA-256，验证 App 原文件和项目索引未改变。取消导出也核对原件与索引。
+
+将 `VideoExportVerification.swift` 加入测试 App 的编译源（正式 Xcode 工程已配置）；非模拟器及 Release 构建不包含测试入口。相册副本读取测试额外使用 `--verify-photos-copy`，仅测试 App 的 Info.plist 需加入 `NSPhotoLibraryUsageDescription` 并允许读取相册；正式 App 只包含 `NSPhotoLibraryAddUsageDescription`，保存时只申请添加权限。不要在真实用户相册或手机采集目录中生成测试素材。
+
+2026-10-12 三项模拟器测试全部通过；iPhone 13 同标识覆盖安装后正常启动，4 段已有视频名称/大小/修改时间未改变，项目索引逐字节一致。真机已有大视频导出尚未执行，详细验证范围见仓库 `docs/validation/video-local-export-v0.2.8.json`。
+
 ## 0.2.7 上传回归
 
 在 Mac 上运行（仅创建临时测试文件）：

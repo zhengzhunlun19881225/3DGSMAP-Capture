@@ -11,6 +11,19 @@ struct GSMapCaptureApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG && targetEnvironment(simulator)
+            if ProcessInfo.processInfo.arguments.contains("--verify-video-export") {
+                VideoExportVerificationView()
+            } else {
+                normalContent
+            }
+            #else
+            normalContent
+            #endif
+        }
+    }
+
+    @ViewBuilder private var normalContent: some View {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--verify-capture-resolutions") {
                 CaptureResolutionVerificationView()
@@ -20,7 +33,6 @@ struct GSMapCaptureApp: App {
             #else
             projectList
             #endif
-        }
     }
 
     private var projectList: some View {

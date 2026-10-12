@@ -44,6 +44,7 @@ struct CaptureSessionDetailView: View {
     @State private var uploadTask: Task<Void, Never>?
     @State private var selectedMedia: MediaRecord?
     @State private var settings = false
+    @StateObject private var exporter = VideoLocalExporter()
 
     private var session: CaptureSessionRecord? {
         store.projects.first(where: { $0.id == projectId })?.sessions.first(where: { $0.id == sessionId })
@@ -58,9 +59,16 @@ struct CaptureSessionDetailView: View {
                         Button { selectedMedia = asset } label: {
                             CaptureMediaRow(asset: asset)
                         }
-                        .disabled(connection.working)
+                        .disabled(connection.working || exporter.busy)
                     }
                     if session.media.isEmpty { Text("本批次没有已保存素材").foregroundStyle(.secondary) }
+                }
+                if session.media.contains(where: { $0.mode == .video }) {
+                    Section("保存视频到手机") {
+                        VideoLocalExportControls(exporter: exporter,
+                            urls: session.media.filter { $0.mode == .video }.map { store.fileURL($0) },
+                            disabled: connection.working)
+                    }
                 }
                 Section("拍摄阶段记录") {
                     ForEach(CaptureStage.captureOrder) { stage in
@@ -85,13 +93,15 @@ struct CaptureSessionDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         UploadProgressView(progress: connection.transfer)
                         Text("上传时保持 APP 在前台。断线后可重试续传；收到任务编号后，电脑独立训练。").font(.footnote).foregroundStyle(.secondary)
-                    }
+                    }.disabled(exporter.busy)
                 }
             }
           }.padding()
         }.navigationTitle("采集批次")
             .sheet(isPresented: $settings) { ConnectionSettingsView() }
             .sheet(item: $selectedMedia) { asset in LocalMediaPreview(asset: asset, url: store.fileURL(asset)) }
+            .navigationBarBackButtonHidden(exporter.busy)
+            .interactiveDismissDisabled(exporter.busy)
             .onChange(of: connection.working) { _, working in UIApplication.shared.isIdleTimerDisabled = working }
             .onChange(of: scenePhase) { _, phase in if phase == .background { uploadTask?.cancel() } }
             .onDisappear { uploadTask?.cancel(); UIApplication.shared.isIdleTimerDisabled = false }
@@ -135,17 +145,31 @@ private struct UploadProgressView: View {
 }
 
 struct LocalMediaPreview: View {
+    @Environment(\.dismiss) private var dismiss
     let asset: MediaRecord
     let url: URL
     @State private var player: AVPlayer?
+    @StateObject private var exporter = VideoLocalExporter()
     var body: some View {
-        Group {
+        NavigationStack {
+          VStack {
             if asset.mode == .photo {
                 if let image = UIImage(contentsOfFile: url.path) { Image(uiImage: image).resizable().scaledToFit() }
                 else { ContentUnavailableView("照片文件不可读", systemImage: "exclamationmark.triangle") }
             } else if let player { VideoPlayer(player: player) }
+            if asset.mode == .video {
+                VideoLocalExportControls(exporter: exporter, urls: [url]).padding()
+            }
+          }
+          .navigationTitle(asset.mode == .video ? "视频预览" : "照片预览")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar { ToolbarItem(placement: .confirmationAction) {
+              Button("完成") { dismiss() }.disabled(exporter.busy)
+          } }
         }.onAppear { if asset.mode == .video { player = AVPlayer(url: url) } }
             .onDisappear { player?.pause() }
+            .onChange(of: exporter.busy) { _, busy in if busy { player?.pause() } }
+            .interactiveDismissDisabled(exporter.busy)
     }
 }
 

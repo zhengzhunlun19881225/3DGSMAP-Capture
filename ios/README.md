@@ -1,6 +1,8 @@
 # 3DGSMAP Capture · iPhone 原生采集
 
-当前源码版本 **0.2.7（build 9）**，最低 iOS 17。SwiftUI + AVFoundation + Core Motion，无第三方 iOS 依赖。
+当前源码版本 **0.2.8（build 10）**，最低 iOS 17。SwiftUI + AVFoundation + Core Motion，无第三方 iOS 依赖。
+
+本版增加已拍视频「保存到相册」与「导出到文件」，批量或单段保存均复制原片、保留 App 内原件。默认本机导出目录支持电脑文件共享，可用数据线取到训练电脑。操作说明见 [视频本地保存](../docs/VIDEO_LOCAL_EXPORT.md)。
 
 本版改进大视频上传准备与界面响应：独立文件工作 actor、4 MiB 有界缓冲、校验缓存、独立进度区域和续传恢复。批次页面使用惰性布局，进度更新不再刷新整个素材列表。编译/回归由 `Validate iOS capture` workflow 执行；原有 0.2.6 真机分辨率报告不能作为本版上传或闪退修复验收。更新说明和待验收项目见 [CAPTURE_UPLOAD_UPDATE.md](../docs/CAPTURE_UPLOAD_UPDATE.md)。
 
@@ -30,7 +32,7 @@ xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -sdk iphones
 4. 照片使用足够尺寸的原生相机像素，按 16:9 居中裁切并缩小至所选尺寸；竖拍宽高互换。不会将低分辨率来源放大为 4K，像素不足时显示错误。
 5. 录制、保存或间隔拍摄中不能切换分辨率。配置失败显示错误并恢复之前设置。
 6. 照片支持手动拍摄、2 秒间隔拍摄和上一张照片半透明参考。视频参考线可在设置中手动调节，参考线与引导图不会写入素材。
-7. 素材和项目索引保存在 App 内，可离线采集。手机系统「照片」相册中没有这些文件是正常的。
+7. 素材和项目索引保存在 App 内，可离线采集。打开采集批次 →「保存视频到手机」，选择「保存到相册」或「导出到文件」复制已有视频；单段可在视频预览底部保存。原件和记录保留，保存前系统相册中没有这些文件是正常的。
 8. 项目内采集记录左滑 → 删除 → 二次确认。删除本机记录及所属素材，不删除电脑上已经提交的训练任务。
 
 ## 上传与电脑联调
@@ -47,7 +49,7 @@ xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -sdk iphones
 
 2026-10-12 在 iPhone 13 / iOS 26.2 上完成签名、安装、启动与真实分辨率切换：1080p → 4K → 1080p，每档位在两个横屏方向分别生成照片和约 2 秒视频，共 12 个文件。直接读取 JPEG 尺寸和 MOV 视频轨道后全部通过，6 个视频均为 30 fps，录制中切换均被拒绝。测试素材由独立测试入口生成并清理，不加入用户项目。
 
-照片编码回归和模拟器设置/四步引导回归通过。完整报告位于仓库的 `docs/validation/iphone13-resolution-v0.2.6.json`；测试方法见 [Tests/README.md](Tests/README.md)。源码压缩包只包含 `ios`，完整报告请在仓库查看。
+照片编码回归和模拟器设置/四步引导回归通过。完整报告位于仓库的 `docs/validation/iphone13-resolution-v0.2.6.json`；测试方法见 [Tests/README.md](Tests/README.md)。源码压缩包包含 `ios` 与本地导出操作说明，完整测量报告请在仓库查看。
 
 ## 源码结构
 
@@ -56,6 +58,7 @@ xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -sdk iphones
 - `CaptureModels.swift` / `CaptureStore.swift`：采集状态、项目索引、素材归属和删除事务。
 - `CaptureViews.swift`：项目、四阶段引导、相机界面和配置面板。
 - `MobileConnection.swift` / `TransferViews.swift`：电脑连接、上传及成果客户端。
+- `VideoLocalExport.swift`：添加视频到相册、系统文件副本导出和本地保存状态。
 - `Tests/`：状态、删除、照片编码及 UI 回归源码。
 
 `generate_xcode_project.py` 可生成基础工程；已有签名配置时不要直接覆盖现有工程。仅 Debug 版本在显式传入 `--verify-capture-resolutions` 启动参数时运行真机分辨率测试，正常启动不运行测试。
