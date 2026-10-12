@@ -13,3 +13,17 @@ tools/
 release/
 __pycache__/
 *.pyc
+
+# Local builds, device artifacts and design references
+output/
+tmp/
+docs/references/
+docs/mobile-capture-design.md
+docs/mobile-capture-validation.md
+DerivedData/
+*.xcresult/
+xcuserdata/
+*.xcuserstate
+*.mobileprovision
+*.p12
+*.ipa

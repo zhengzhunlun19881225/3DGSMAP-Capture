@@ -1,0 +1,140 @@
+{
+  "finishedAt" : "2026-10-12T02:04:46Z",
+  "passed" : true,
+  "samples" : [
+    {
+      "bytes" : 36147,
+      "height" : 1080,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 0,
+      "selected" : "1080p",
+      "width" : 1920
+    },
+    {
+      "bytes" : 232252,
+      "duration" : 2.2333333333333334,
+      "encodedHeight" : 1080,
+      "encodedWidth" : 1920,
+      "fps" : 30,
+      "height" : 1080,
+      "mode" : "video",
+      "rotation" : 0,
+      "selected" : "1080p",
+      "switchDuringRecordingRejected" : true,
+      "width" : 1920
+    },
+    {
+      "bytes" : 185496,
+      "height" : 1080,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 180,
+      "selected" : "1080p",
+      "width" : 1920
+    },
+    {
+      "bytes" : 2822069,
+      "duration" : 2.1983333333333333,
+      "encodedHeight" : 1080,
+      "encodedWidth" : 1920,
+      "fps" : 30,
+      "height" : 1080,
+      "mode" : "video",
+      "rotation" : 180,
+      "selected" : "1080p",
+      "switchDuringRecordingRejected" : true,
+      "width" : 1920
+    },
+    {
+      "bytes" : 1476778,
+      "height" : 2160,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 0,
+      "selected" : "4K",
+      "width" : 3840
+    },
+    {
+      "bytes" : 6331962,
+      "duration" : 2.165,
+      "encodedHeight" : 2160,
+      "encodedWidth" : 3840,
+      "fps" : 30,
+      "height" : 2160,
+      "mode" : "video",
+      "rotation" : 0,
+      "selected" : "4K",
+      "switchDuringRecordingRejected" : true,
+      "width" : 3840
+    },
+    {
+      "bytes" : 1366529,
+      "height" : 2160,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 180,
+      "selected" : "4K",
+      "width" : 3840
+    },
+    {
+      "bytes" : 6303703,
+      "duration" : 2.165,
+      "encodedHeight" : 2160,
+      "encodedWidth" : 3840,
+      "fps" : 30,
+      "height" : 2160,
+      "mode" : "video",
+      "rotation" : 180,
+      "selected" : "4K",
+      "switchDuringRecordingRejected" : true,
+      "width" : 3840
+    },
+    {
+      "bytes" : 443704,
+      "height" : 1080,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 0,
+      "selected" : "1080p",
+      "width" : 1920
+    },
+    {
+      "bytes" : 2095773,
+      "duration" : 2.1983333333333333,
+      "encodedHeight" : 1080,
+      "encodedWidth" : 1920,
+      "fps" : 30,
+      "height" : 1080,
+      "mode" : "video",
+      "rotation" : 0,
+      "selected" : "1080p",
+      "switchDuringRecordingRejected" : true,
+      "width" : 1920
+    },
+    {
+      "bytes" : 441613,
+      "height" : 1080,
+      "mode" : "photo",
+      "orientation" : 1,
+      "rotation" : 180,
+      "selected" : "1080p",
+      "width" : 1920
+    },
+    {
+      "bytes" : 2183205,
+      "duration" : 2.2666666666666666,
+      "encodedHeight" : 1080,
+      "encodedWidth" : 1920,
+      "fps" : 30,
+      "height" : 1080,
+      "mode" : "video",
+      "rotation" : 180,
+      "selected" : "1080p",
+      "switchDuringRecordingRejected" : true,
+      "width" : 1920
+    }
+  ],
+  "startedAt" : "2026-10-12T02:04:25Z",
+  "version" : "0.2.6"
+}

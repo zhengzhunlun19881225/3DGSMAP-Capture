@@ -1,0 +1,233 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6A7B7F183A7EAD6300A40222 /* PhotoResolutionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */; };
+		0E003C3B0B5C324D87C272F9 /* TransferViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA5526FDB2466470DF588C9 /* TransferViews.swift */; };
+		236EA132C379CEEA8B89D193 /* CaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C6CE8822B4089E7662409 /* CaptureStore.swift */; };
+		3AAD8675D49405B4BA454264 /* CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D54C583540DEB28EFAEE56F /* CameraService.swift */; };
+		7E19C8FCF7D23F1F3889AE35 /* GSMapCaptureApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732F808FDE8C171BEA2197AB /* GSMapCaptureApp.swift */; };
+		97C24F5B0CBC7CE6B4607338 /* CaptureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE26F589EB4F9C5E6AD93B7C /* CaptureModels.swift */; };
+		C824A85812B04CA39502867B /* CaptureViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62BEBFA85363400E6B36864 /* CaptureViews.swift */; };
+		DCCE5C5E59E61579E0AE0B06 /* MobileConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1598B80166C2F12AE798920 /* MobileConnection.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoResolutionEncoder.swift; sourceTree = "<group>"; };
+		5D54C583540DEB28EFAEE56F /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
+		732F808FDE8C171BEA2197AB /* GSMapCaptureApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GSMapCaptureApp.swift; sourceTree = "<group>"; };
+		9AC3B5AD93CBC0305C62F78F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A8792157CB4F27FB949C035F /* GSMapCapture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = GSMapCapture.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C62BEBFA85363400E6B36864 /* CaptureViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureViews.swift; sourceTree = "<group>"; };
+		CFA5526FDB2466470DF588C9 /* TransferViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferViews.swift; sourceTree = "<group>"; };
+		DE26F589EB4F9C5E6AD93B7C /* CaptureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureModels.swift; sourceTree = "<group>"; };
+		E29C6CE8822B4089E7662409 /* CaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureStore.swift; sourceTree = "<group>"; };
+		F1598B80166C2F12AE798920 /* MobileConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileConnection.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E2AA269EB967A8853A258BFA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1455444174429298B0F374B3 /* GSMapCapture */ = {
+			isa = PBXGroup;
+			children = (
+				6A7B7F183A7EAD6300A40111 /* PhotoResolutionEncoder.swift */,
+				5D54C583540DEB28EFAEE56F /* CameraService.swift */,
+				DE26F589EB4F9C5E6AD93B7C /* CaptureModels.swift */,
+				E29C6CE8822B4089E7662409 /* CaptureStore.swift */,
+				C62BEBFA85363400E6B36864 /* CaptureViews.swift */,
+				732F808FDE8C171BEA2197AB /* GSMapCaptureApp.swift */,
+				F1598B80166C2F12AE798920 /* MobileConnection.swift */,
+				CFA5526FDB2466470DF588C9 /* TransferViews.swift */,
+				9AC3B5AD93CBC0305C62F78F /* Info.plist */,
+			);
+			path = GSMapCapture;
+			sourceTree = "<group>";
+		};
+		19F479106CE8C3BA8C106518 = {
+			isa = PBXGroup;
+			children = (
+				1455444174429298B0F374B3 /* GSMapCapture */,
+				CB00D889DA9E2BC4A36341DA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB00D889DA9E2BC4A36341DA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A8792157CB4F27FB949C035F /* GSMapCapture.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		34A04005BCAF206EEC990BD9 /* GSMapCapture */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4A807E8A027297B0B93701FB /* Build configuration list for PBXNativeTarget "GSMapCapture" */;
+			buildPhases = (
+				878A52FC5FF6A57D50B7B870 /* Sources */,
+				E2AA269EB967A8853A258BFA /* Frameworks */,
+				41D311A605520FC7B8B9A980 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GSMapCapture;
+			productName = GSMapCapture;
+			productReference = A8792157CB4F27FB949C035F /* GSMapCapture.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		244210E48437B6556980A702 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = B4E10CAA9C5E22150B71559C /* Build configuration list for PBXProject "GSMapCapture" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh_CN;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				zh_CN,
+				en,
+				Base,
+			);
+			mainGroup = 19F479106CE8C3BA8C106518;
+			productRefGroup = CB00D889DA9E2BC4A36341DA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				34A04005BCAF206EEC990BD9 /* GSMapCapture */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		41D311A605520FC7B8B9A980 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		878A52FC5FF6A57D50B7B870 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6A7B7F183A7EAD6300A40222 /* PhotoResolutionEncoder.swift in Sources */,
+				3AAD8675D49405B4BA454264 /* CameraService.swift in Sources */,
+				97C24F5B0CBC7CE6B4607338 /* CaptureModels.swift in Sources */,
+				236EA132C379CEEA8B89D193 /* CaptureStore.swift in Sources */,
+				C824A85812B04CA39502867B /* CaptureViews.swift in Sources */,
+				7E19C8FCF7D23F1F3889AE35 /* GSMapCaptureApp.swift in Sources */,
+				DCCE5C5E59E61579E0AE0B06 /* MobileConnection.swift in Sources */,
+				0E003C3B0B5C324D87C272F9 /* TransferViews.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		35B1014F135DE9B45529B733 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		488864B3D19480A82F7F1786 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		952548237D7F645F11D1E7B6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7HNC4NVF58;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GSMapCapture/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zhengzhunlun.gsmapcapture;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E2D3A31BEAA1368FC62DA77A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7HNC4NVF58;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GSMapCapture/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zhengzhunlun.gsmapcapture;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4A807E8A027297B0B93701FB /* Build configuration list for PBXNativeTarget "GSMapCapture" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				952548237D7F645F11D1E7B6 /* Debug */,
+				E2D3A31BEAA1368FC62DA77A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B4E10CAA9C5E22150B71559C /* Build configuration list for PBXProject "GSMapCapture" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				488864B3D19480A82F7F1786 /* Debug */,
+				35B1014F135DE9B45529B733 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 244210E48437B6556980A702 /* Project object */;
+}
