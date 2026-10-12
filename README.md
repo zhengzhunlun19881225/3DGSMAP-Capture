@@ -18,6 +18,7 @@ iPhone 原生采集 App，以及本地 Gaussian Splatting 重建网页与服务�
 - [更新记录](CHANGELOG.md)
 - [测试运行说明](ios/Tests/README.md)
 - [iPhone 13 真实分辨率测量报告](docs/validation/iphone13-resolution-v0.2.6.json)
+- [训练电脑接入任务清单](docs/TRAINING_COMPUTER_TASKS.md)：补齐手机视频上传、抽帧、训练队列和手机成果页。
 
 2026-10-12，0.2.6 已在 iPhone 13 / iOS 26.2 上完成 1080p → 4K → 1080p 的实际拍摄验证。两个横屏方向共生成 12 个照片/视频文件，真实尺寸全部匹配所选档位，6 段视频均为 30 fps。照片编码回归及模拟器设置/四步引导界面测试通过。
 
