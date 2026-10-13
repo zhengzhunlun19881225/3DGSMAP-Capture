@@ -138,6 +138,32 @@ struct CaptureProject: Codable, Identifiable {
     var sessions: [CaptureSessionRecord]
 }
 
+enum HighlightProtectionMode: String, CaseIterable, Identifiable {
+    case off, autoExposure, systemHDR
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .off: return "关闭"
+        case .autoExposure: return "自动压曝光"
+        case .systemHDR: return "系统 HDR"
+        }
+    }
+    static let preferenceKey = "capture.highlightProtectionMode"
+    static let legacyPreferenceKey = "capture.autoHighlightProtectionEnabled"
+
+    static func load(from defaults: UserDefaults = .standard, captureMode: CaptureMode = .video) -> Self {
+        let saved = defaults.string(forKey: preferenceKey).flatMap(Self.init(rawValue:))
+            ?? (defaults.bool(forKey: legacyPreferenceKey) ? .autoExposure : .off)
+        // Keep the saved video preference intact when opening a photo session.
+        return captureMode == .photo && saved == .systemHDR ? .off : saved
+    }
+
+    func save(to defaults: UserDefaults = .standard) {
+        defaults.set(rawValue, forKey: Self.preferenceKey)
+        defaults.set(self == .autoExposure, forKey: Self.legacyPreferenceKey)
+    }
+}
+
 /// Highlight protection with a dead band and slower recovery to avoid exposure pumping.
 /// Samples are normalized 8-bit luminance, independent of camera buffer range/stride.
 struct HighlightExposureController {

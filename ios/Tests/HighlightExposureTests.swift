@@ -3,6 +3,23 @@ import Foundation
 @main
 enum HighlightExposureTests {
     static func main() {
+        let suite = "HighlightModeTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        precondition(HighlightProtectionMode.load(from: defaults) == .off)
+        defaults.set(true, forKey: HighlightProtectionMode.legacyPreferenceKey)
+        precondition(HighlightProtectionMode.load(from: defaults) == .autoExposure)
+        HighlightProtectionMode.systemHDR.save(to: defaults)
+        precondition(!defaults.bool(forKey: HighlightProtectionMode.legacyPreferenceKey))
+        defaults.set(true, forKey: HighlightProtectionMode.legacyPreferenceKey)
+        precondition(HighlightProtectionMode.load(from: defaults) == .systemHDR)
+        precondition(HighlightProtectionMode.load(from: defaults, captureMode: .photo) == .off)
+        precondition(HighlightProtectionMode.load(from: defaults) == .systemHDR)
+        HighlightProtectionMode.autoExposure.save(to: defaults)
+        precondition(HighlightProtectionMode.load(from: defaults) == .autoExposure)
+        HighlightProtectionMode.off.save(to: defaults)
+        precondition(HighlightProtectionMode.load(from: defaults) == .off)
+        print("PASS: exclusive modes, legacy migration, photo isolation, persistence")
         var controller = HighlightExposureController()
         let normal = [UInt8](repeating: 160, count: 1000)
         let clipped = [UInt8](repeating: 255, count: 1000)

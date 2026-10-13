@@ -136,7 +136,7 @@ struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var store: CaptureStore
-    @StateObject private var camera = CameraService()
+    @StateObject private var camera: CameraService
     @StateObject private var motion = MotionService()
     let projectId: UUID
     let sessionId: UUID
@@ -154,6 +154,13 @@ struct CaptureView: View {
     @State private var intervalRunning = false
     @State private var intervalTimer: Timer?
     @State private var feedback = ""
+
+    init(projectId: UUID, sessionId: UUID, mode: CaptureMode) {
+        self.projectId = projectId
+        self.sessionId = sessionId
+        self.mode = mode
+        _camera = StateObject(wrappedValue: CameraService(captureMode: mode))
+    }
 
     private var sessionRecord: CaptureSessionRecord? {
         store.projects.first(where: { $0.id == projectId })?.sessions.first(where: { $0.id == sessionId })
@@ -441,24 +448,39 @@ struct CaptureView: View {
                         }
                     }
                 }
-                Section("自动防强光") {
-                    Toggle("启用自动防强光", isOn: Binding(
-                        get: { camera.highlightProtectionEnabled },
-                        set: { camera.setHighlightProtection($0) }
-                    ))
-                    .accessibilityIdentifier("capture.highlight-protection")
-                    .disabled(!camera.isConfigured || (!camera.highlightProtectionAvailable && !camera.highlightProtectionEnabled) || camera.isBusy || flow.inFlight || intervalRunning)
-                    if !camera.isConfigured {
-                        Text("相机就绪后可开启。").font(.footnote).foregroundStyle(.secondary)
-                    } else if !camera.highlightProtectionAvailable {
-                        Text("当前相机无法使用自动防强光。").font(.footnote).foregroundStyle(.secondary)
+                Section("防强光方案 · 单选") {
+                    Picker("防强光方案", selection: Binding(
+                        get: { camera.highlightMode },
+                        set: { camera.setHighlightMode($0) }
+                    )) {
+                        Text("关闭").tag(HighlightProtectionMode.off)
+                        Text("自动压曝光").tag(HighlightProtectionMode.autoExposure)
+                            .disabled(!camera.highlightProtectionAvailable)
+                        if mode == .video {
+                            Text("系统 HDR").tag(HighlightProtectionMode.systemHDR)
+                                .disabled(!camera.systemHDRAvailable)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("capture.highlight-mode")
+                    .disabled(!camera.isConfigured || camera.isBusy || flow.inFlight || intervalRunning)
+                    if camera.isChangingHighlightMode {
+                        ProgressView("正在切换防强光方案…")
+                    } else if !camera.isConfigured {
+                        Text("相机就绪后可选择。").font(.footnote).foregroundStyle(.secondary)
+                    } else if camera.highlightMode == .systemHDR && camera.systemHDRActive {
+                        Text("系统 HDR 已生效：由相机合并不同曝光，兼顾亮部与暗部；自动压曝光已关闭。")
+                            .font(.footnote).foregroundStyle(.secondary)
                     } else if camera.highlightProtectionEnabled {
                         Text(camera.highlightExposureBias < -0.05
                              ? String(format: "亮部保护中：曝光 %.1f EV", camera.highlightExposureBias)
-                             : "已开启，正在自动检测画面高亮。")
+                             : "正在自动检测画面高亮。")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
-                    Text("默认关闭。开启后自动降低高亮场景曝光，光线恢复时缓慢回调；照片和视频均生效。暗部可能变暗，不能消除镜头眩光。拍摄中不能切换。")
+                    if mode == .video && camera.isConfigured && !camera.systemHDRAvailable {
+                        Text("当前相机档位不支持系统 HDR。").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Text("默认关闭，两个方案不能同时启用。自动压曝光适用于照片和视频，暗部可能变暗；系统 HDR 仅用于视频。拍摄中不能切换，均无法消除光学眩光。")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 if mode == .video && flow.stage != .detail {

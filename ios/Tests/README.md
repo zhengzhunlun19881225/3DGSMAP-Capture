@@ -1,5 +1,13 @@
 # 拍摄流程测试
 
+## 0.2.11 防强光互斥方案
+
+`HighlightExposureTests.swift` 同时覆盖旧设置迁移、互斥持久化、照片模式不覆盖视频 HDR 偏好及曝光控制算法。
+
+Debug 真机参数 `--verify-highlight-modes` 在 1080p 和 4K 依次切换 HDR → 自动压曝光 → 关闭 → HDR；检查设备 HDR 标志、自动 HDR 决策关闭、分析连接互斥、真实分析帧、曝光复位、录制中拒绝切换，并录制 8 段短视频检查尺寸及 30 fps。保持 HDR 从 1080p 切至 4K，最后恢复原设置。仅删除验证自身临时文件，不写项目记录。报告写入 `Library/Application Support/GSMapCapture/highlight-modes-verification.json`。
+
+模拟器拍摄引导测试验证三个选项、默认关闭以及无真实相机时禁用，不声称模拟器验证了 HDR 画质。
+
 ## 0.2.10 自动防强光
 
 `HighlightExposureTests.swift` 检查普通光线不压暗、忽略小亮点、窗户高亮压制、曝光滞回区、最大压暗限制、缓慢恢复、相机范围限制和关闭复位；GitHub workflow 已加入执行。

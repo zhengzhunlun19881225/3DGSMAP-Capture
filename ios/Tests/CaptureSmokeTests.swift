@@ -147,14 +147,16 @@ final class CaptureSmokeTests: XCTestCase {
         XCTAssertFalse(stabilization.isEnabled, "Simulator has no real camera; stabilization must not claim to be available")
         XCTAssertEqual(stabilization.value as? String, "0", "New installs must default to stabilization off")
         screenshot(app, "capture-resolution-settings")
-        let highlights = app.switches["capture.highlight-protection"]
+        let highlights = app.segmentedControls["capture.highlight-mode"]
         for _ in 0..<6 where !highlights.exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
         }
         XCTAssertTrue(highlights.exists, app.debugDescription)
         XCTAssertFalse(highlights.isEnabled, "No real camera must leave highlight protection unavailable")
-        XCTAssertEqual(highlights.value as? String, "0")
+        XCTAssertTrue(highlights.buttons["关闭"].isSelected)
+        XCTAssertTrue(highlights.buttons["自动压曝光"].exists)
+        XCTAssertTrue(highlights.buttons["系统 HDR"].exists)
         screenshot(app, "capture-highlight-protection-settings")
         for _ in 0..<6 where !app.sliders.firstMatch.exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
