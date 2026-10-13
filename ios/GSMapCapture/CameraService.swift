@@ -35,6 +35,8 @@ final class CameraService: NSObject, ObservableObject {
     private var photoResolution = CaptureResolution.fullHD
     private var videoResolution = CaptureResolution.fullHD
     private static let resolutionKey = "capture.outputResolution"
+    private static let stabilizationKey = "capture.videoStabilizationEnabled"
+    private var requestedVideoStabilization = UserDefaults.standard.bool(forKey: stabilizationKey)
 
     @Published private(set) var permissionDenied = false
     @Published private(set) var isConfigured = false
@@ -44,6 +46,9 @@ final class CameraService: NSObject, ObservableObject {
     @Published private(set) var resolution = CaptureResolution(rawValue: UserDefaults.standard.string(forKey: resolutionKey) ?? "") ?? .fullHD
     @Published private(set) var supportedResolutions: [CaptureResolution] = []
     @Published private(set) var isChangingResolution = false
+    @Published private(set) var videoStabilizationEnabled = UserDefaults.standard.bool(forKey: stabilizationKey)
+    @Published private(set) var videoStabilizationAvailable = false
+    @Published private(set) var videoStabilizationActive = false
     @Published var errorMessage: String?
     var onPhotoSaved: ((URL) -> Void)?
     var onVideoSaved: ((URL, TimeInterval, Int, Int, String) -> Void)?
@@ -87,6 +92,7 @@ final class CameraService: NSObject, ObservableObject {
             self.configured = true
             self.setLandscapeConnections()
             self.session.startRunning()
+            self.publishVideoStabilizationState()
             DispatchQueue.main.async {
                 self.resolution = selected; self.supportedResolutions = supported; self.isConfigured = true
                 if selected != preferred { self.errorMessage = "当前相机不支持 4K，已使用 1080p" }
@@ -148,6 +154,7 @@ final class CameraService: NSObject, ObservableObject {
                 try self.applyResolution(selected)
                 UserDefaults.standard.set(selected.rawValue, forKey: Self.resolutionKey)
                 if wasRunning { self.session.startRunning() }
+                self.publishVideoStabilizationState()
                 DispatchQueue.main.async {
                     self.resolution = selected; self.isChangingResolution = false; self.isBusy = false; completion?(true)
                 }
@@ -156,6 +163,7 @@ final class CameraService: NSObject, ObservableObject {
                 do { try self.applyResolution(previous) }
                 catch { self.configured = false }
                 if wasRunning && self.configured { self.session.startRunning() }
+                self.publishVideoStabilizationState()
                 let available = self.configured
                 DispatchQueue.main.async {
                     self.isConfigured = available; self.resolution = previous
@@ -170,6 +178,56 @@ final class CameraService: NSObject, ObservableObject {
         for output in [photoOutput as AVCaptureOutput, movieOutput as AVCaptureOutput] {
             guard let connection = output.connection(with: .video) else { continue }
             if connection.isVideoRotationAngleSupported(rotation) { connection.videoRotationAngle = rotation }
+            if output === movieOutput {
+                let supported = supportsStandardStabilization(connection)
+                connection.preferredVideoStabilizationMode = requestedVideoStabilization && supported ? .standard : .off
+                publishVideoStabilizationState()
+            }
+        }
+    }
+
+    private func supportsStandardStabilization(_ connection: AVCaptureConnection) -> Bool {
+        connection.isVideoStabilizationSupported && device?.activeFormat.isVideoStabilizationModeSupported(.standard) == true
+    }
+
+    private func publishVideoStabilizationState() {
+        guard let connection = movieOutput.connection(with: .video) else { return }
+        let supported = supportsStandardStabilization(connection)
+        let active = connection.activeVideoStabilizationMode != .off
+        DispatchQueue.main.async {
+            self.videoStabilizationAvailable = supported
+            self.videoStabilizationActive = active
+        }
+    }
+
+    /// Changes stabilization only while no capture is in flight. It is opt-in because
+    /// digital stabilization can warp pixels that are useful for 3D reconstruction.
+    func setVideoStabilization(_ enabled: Bool, completion: ((Bool) -> Void)? = nil) {
+        guard isConfigured, !isBusy, !isChangingResolution else { completion?(false); return }
+        isBusy = true; errorMessage = nil
+        queue.async {
+            guard !self.pendingPhoto, !self.movieRequested,
+                  let connection = self.movieOutput.connection(with: .video) else {
+                let busy = self.pendingPhoto || self.movieRequested
+                DispatchQueue.main.async { self.isBusy = busy; completion?(false) }
+                return
+            }
+            guard !enabled || self.supportsStandardStabilization(connection) else {
+                DispatchQueue.main.async {
+                    self.isBusy = false
+                    self.errorMessage = "当前分辨率不支持视频防抖"
+                    completion?(false)
+                }
+                return
+            }
+            self.requestedVideoStabilization = enabled
+            UserDefaults.standard.set(enabled, forKey: Self.stabilizationKey)
+            self.setLandscapeConnections()
+            DispatchQueue.main.async {
+                self.videoStabilizationEnabled = enabled
+                self.isBusy = false
+                completion?(true)
+            }
         }
     }
 

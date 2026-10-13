@@ -134,11 +134,6 @@ final class CaptureSmokeTests: XCTestCase {
         app.buttons["capture.continue"].tap()
         XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
         screenshot(app, "capture-horizontal-ready")
-        XCUIDevice.shared.orientation = .landscapeRight
-        XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["请将手机横置"].exists)
-        screenshot(app, "capture-horizontal-ready-opposite")
-        XCUIDevice.shared.orientation = .landscapeLeft
         app.buttons["拍摄设置"].tap()
         XCTAssertTrue(app.navigationBars["拍摄设置"].waitForExistence(timeout: 5))
         let resolution = app.segmentedControls["capture.resolution"]
@@ -147,10 +142,20 @@ final class CaptureSmokeTests: XCTestCase {
         XCTAssertTrue(resolution.buttons["1080p"].exists)
         XCTAssertFalse(resolution.isEnabled, "Simulator has no real camera; it must not claim a successful resolution switch")
         XCTAssertFalse(app.staticTexts["capture.resolution.applied"].exists)
+        let stabilization = app.switches["capture.video-stabilization"]
+        XCTAssertTrue(stabilization.exists)
+        XCTAssertFalse(stabilization.isEnabled, "Simulator has no real camera; stabilization must not claim to be available")
+        XCTAssertEqual(stabilization.value as? String, "0", "New installs must default to stabilization off")
         screenshot(app, "capture-resolution-settings")
+        if !app.sliders.firstMatch.exists { app.swipeUp() }
         XCTAssertTrue(app.sliders.firstMatch.exists)
         app.sliders.firstMatch.adjust(toNormalizedSliderPosition: 0.8)
         app.buttons["完成"].tap()
+        XCUIDevice.shared.orientation = .landscapeRight
+        XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["请将手机横置"].exists)
+        screenshot(app, "capture-horizontal-ready-opposite")
+        XCUIDevice.shared.orientation = .landscapeLeft
         app.buttons["capture.help"].tap()
         app.buttons["capture.skip"].tap()
         XCTAssertEqual(title.label, "第2步：环绕房间仰视拍摄")

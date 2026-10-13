@@ -418,6 +418,29 @@ struct CaptureView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                     if let error = camera.errorMessage { Text(error).font(.footnote).foregroundStyle(.orange) }
                 }
+                if mode == .video {
+                    Section("视频防抖") {
+                        Toggle("启用视频防抖", isOn: Binding(
+                            get: { camera.videoStabilizationEnabled },
+                            set: { camera.setVideoStabilization($0) }
+                        ))
+                        .accessibilityIdentifier("capture.video-stabilization")
+                        .disabled(!camera.isConfigured || (!camera.videoStabilizationAvailable && !camera.videoStabilizationEnabled) || camera.isBusy || flow.inFlight || intervalRunning)
+                        if camera.videoStabilizationEnabled && camera.videoStabilizationActive {
+                            Text("已生效：录制画面会更平滑。防抖会裁切或轻微变形画面，重建几何精度可能下降。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else if !camera.videoStabilizationAvailable {
+                            Text("当前相机或分辨率不支持视频防抖。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else if camera.videoStabilizationEnabled {
+                            Text("已开启防抖，实际生效状态由相机确定。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text("默认关闭，适合需要保持重建几何精度的采集。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 if mode == .video && flow.stage != .detail {
                     Section("手动对齐参考线") {
                         Slider(value: $linePosition, in: 0.18...0.82)

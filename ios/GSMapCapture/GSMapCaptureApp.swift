@@ -25,7 +25,7 @@ struct GSMapCaptureApp: App {
 
     @ViewBuilder private var normalContent: some View {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--verify-capture-resolutions") {
+            if ProcessInfo.processInfo.arguments.contains("--verify-capture-resolutions") || ProcessInfo.processInfo.arguments.contains("--verify-video-stabilization") {
                 CaptureResolutionVerificationView()
             } else {
                 projectList
@@ -57,7 +57,13 @@ private struct CaptureResolutionVerificationView: View {
         ZStack {
             CameraPreview(session: camera.session).ignoresSafeArea()
             Text(status).padding(24).background(.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 16)).foregroundStyle(.white)
-        }.task { await verify() }
+        }.task {
+            if ProcessInfo.processInfo.arguments.contains("--verify-video-stabilization") {
+                await verifyStabilization()
+            } else {
+                await verify()
+            }
+        }
     }
 
     @MainActor private func waitUntil(_ condition: () -> Bool) async throws {
@@ -78,6 +84,74 @@ private struct CaptureResolutionVerificationView: View {
             camera.setResolution(selected) { continuation.resume(returning: $0) }
         }
         guard success, camera.resolution == selected else { throw failure(camera.errorMessage ?? "切换未生效") }
+    }
+
+    @MainActor private func changeStabilization(_ enabled: Bool) async throws {
+        let success: Bool = await withCheckedContinuation { continuation in
+            camera.setVideoStabilization(enabled) { continuation.resume(returning: $0) }
+        }
+        guard success, camera.videoStabilizationEnabled == enabled else { throw failure("防抖开关未应用") }
+        try await waitUntil { camera.videoStabilizationActive == enabled }
+        guard UserDefaults.standard.bool(forKey: "capture.videoStabilizationEnabled") == enabled else { throw failure("防抖设置未保存") }
+    }
+
+    @MainActor private func verifyStabilization() async {
+        let originalResolution = camera.resolution
+        let originalStabilization = camera.videoStabilizationEnabled
+        var samples: [[String: Any]] = []
+        var result: [String: Any] = ["version": "0.2.9", "passed": false, "initialEnabled": originalStabilization,
+                                     "startedAt": ISO8601DateFormatter().string(from: Date())]
+        camera.onVideoSaved = { url, _, _, _, _ in videoURL = url }
+        do {
+            camera.requestAndConfigure()
+            try await waitUntil { camera.isConfigured }
+            for selected in [CaptureResolution.fullHD, .ultraHD] {
+                try await change(selected)
+                guard camera.videoStabilizationAvailable else { throw failure("\(selected.title) 不支持标准防抖") }
+                for enabled in [false, true, false] {
+                    status = "验证 \(selected.title) 防抖\(enabled ? "开启" : "关闭")"
+                    try await changeStabilization(enabled)
+                    videoURL = nil
+                    camera.toggleVideo()
+                    try await waitUntil { camera.isRecording }
+                    let rejected: Bool = await withCheckedContinuation { continuation in
+                        camera.setVideoStabilization(!enabled) { continuation.resume(returning: !$0) }
+                    }
+                    guard rejected, camera.videoStabilizationActive == enabled else { throw failure("录制中防抖状态错误") }
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    camera.stop()
+                    try await waitUntil { videoURL != nil && !camera.isBusy }
+                    guard let url = videoURL else { throw failure("测试视频未保存") }
+                    defer { try? FileManager.default.removeItem(at: url) }
+                    let asset = AVURLAsset(url: url)
+                    guard let track = try await asset.loadTracks(withMediaType: .video).first else { throw failure("视频轨道缺失") }
+                    let size = try await track.load(.naturalSize)
+                    let fps = try await track.load(.nominalFrameRate)
+                    guard selected.matches(width: Int(size.width), height: Int(size.height)), abs(fps - 30) < 1 else { throw failure("防抖改变了输出档位") }
+                    samples.append(["resolution": selected.title, "enabled": enabled, "active": camera.videoStabilizationActive,
+                                    "width": Int(size.width), "height": Int(size.height), "fps": fps,
+                                    "switchDuringRecordingRejected": rejected])
+                }
+            }
+            result["passed"] = true
+        } catch { result["error"] = error.localizedDescription }
+        if camera.isRecording { camera.stop(); try? await waitUntil { !camera.isBusy } }
+        if let url = videoURL { try? FileManager.default.removeItem(at: url) }
+        do {
+            try await change(originalResolution)
+            try await changeStabilization(originalStabilization)
+            result["settingsRestored"] = true
+        } catch { result["passed"] = false; result["restoreError"] = error.localizedDescription }
+        result["samples"] = samples
+        result["finishedAt"] = ISO8601DateFormatter().string(from: Date())
+        camera.pauseSession()
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("GSMapCapture")
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: directory.appendingPathComponent("stabilization-verification.json"), options: .atomic)
+            status = result["passed"] as? Bool == true ? "防抖验证通过" : "防抖验证失败"
+        } catch { status = "防抖验证报告写入失败" }
     }
 
     @MainActor private func verify() async {

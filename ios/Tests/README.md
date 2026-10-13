@@ -1,5 +1,11 @@
 # 拍摄流程测试
 
+## 0.2.9 视频防抖
+
+模拟器用例 `testGuidedRoomCaptureAndSkippedStagesPersist` 检查视频设置有防抖开关；没有真实相机时开关禁用，不声称防抖可用。
+
+Debug 真机显式启动参数 `--verify-video-stabilization` 使用生产 CameraService，在 1080p / 4K 两档分别执行关闭 → 开启 → 关闭，核对实际 `activeVideoStabilizationMode`、持久化、录制中拒绝切换，以及生成 MOV 的尺寸和 30 fps。测试不调用 CaptureStore，不加入用户项目；删除自己生成的临时视频，最后恢复原分辨率及防抖选择。报告写入 `Library/Application Support/GSMapCapture/stabilization-verification.json`。正常启动和 Release 不执行此入口。
+
 ## 0.2.8 视频本地导出
 
 UI 用例 `testVideoSaveToPhotosPreservesOriginalBytesAndIndex`、`testVideoFilesExportPreservesOriginalBytesAndIndex` 和 `testVideoFilesPickerCancellationPreservesOriginals` 使用显式启动参数 `--verify-video-export`，仅在 Debug **模拟器**上启用隔离测试界面。生成真实 1080p / 4K MOV，保存到相册或通过系统文件窗口复制，然后对比 SHA-256，验证 App 原文件和项目索引未改变。取消导出也核对原件与索引。
