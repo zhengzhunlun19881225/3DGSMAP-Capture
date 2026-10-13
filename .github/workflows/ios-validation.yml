@@ -26,5 +26,9 @@ jobs:
           "$RUNNER_TEMP/flow-tests"
           swiftc ios/GSMapCapture/CaptureModels.swift ios/GSMapCapture/CaptureStore.swift ios/Tests/CaptureStoreDeletionTests.swift -o "$RUNNER_TEMP/store-tests"
           "$RUNNER_TEMP/store-tests"
+      - name: Highlight exposure controller regression
+        run: |
+          swiftc ios/GSMapCapture/CaptureModels.swift ios/Tests/HighlightExposureTests.swift -o "$RUNNER_TEMP/highlight-tests"
+          "$RUNNER_TEMP/highlight-tests"
       - name: Build iOS simulator app
         run: xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build

@@ -32,5 +32,11 @@
     "Real-device active stabilization and recorded output validation: launch rejected because iPhone was locked. Unlock requested.",
     "Visual smoothness comparison while walking/turning."
   ],
-  "testEntry": "--verify-video-stabilization"
+  "testEntry": "--verify-video-stabilization",
+  "followUp": {
+    "date": "2026-10-13",
+    "testedAppVersion": "0.2.10",
+    "activeModeAndRecordingChecks": "passed",
+    "report": "highlight-protection-v0.2.10.json"
+  }
 }

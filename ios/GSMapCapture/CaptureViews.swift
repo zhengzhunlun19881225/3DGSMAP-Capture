@@ -441,6 +441,26 @@ struct CaptureView: View {
                         }
                     }
                 }
+                Section("自动防强光") {
+                    Toggle("启用自动防强光", isOn: Binding(
+                        get: { camera.highlightProtectionEnabled },
+                        set: { camera.setHighlightProtection($0) }
+                    ))
+                    .accessibilityIdentifier("capture.highlight-protection")
+                    .disabled(!camera.isConfigured || (!camera.highlightProtectionAvailable && !camera.highlightProtectionEnabled) || camera.isBusy || flow.inFlight || intervalRunning)
+                    if !camera.isConfigured {
+                        Text("相机就绪后可开启。").font(.footnote).foregroundStyle(.secondary)
+                    } else if !camera.highlightProtectionAvailable {
+                        Text("当前相机无法使用自动防强光。").font(.footnote).foregroundStyle(.secondary)
+                    } else if camera.highlightProtectionEnabled {
+                        Text(camera.highlightExposureBias < -0.05
+                             ? String(format: "亮部保护中：曝光 %.1f EV", camera.highlightExposureBias)
+                             : "已开启，正在自动检测画面高亮。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Text("默认关闭。开启后自动降低高亮场景曝光，光线恢复时缓慢回调；照片和视频均生效。暗部可能变暗，不能消除镜头眩光。拍摄中不能切换。")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
                 if mode == .video && flow.stage != .detail {
                     Section("手动对齐参考线") {
                         Slider(value: $linePosition, in: 0.18...0.82)

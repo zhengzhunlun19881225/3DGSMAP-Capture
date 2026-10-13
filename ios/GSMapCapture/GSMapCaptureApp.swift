@@ -25,7 +25,7 @@ struct GSMapCaptureApp: App {
 
     @ViewBuilder private var normalContent: some View {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--verify-capture-resolutions") || ProcessInfo.processInfo.arguments.contains("--verify-video-stabilization") {
+            if ProcessInfo.processInfo.arguments.contains("--verify-capture-resolutions") || ProcessInfo.processInfo.arguments.contains("--verify-video-stabilization") || ProcessInfo.processInfo.arguments.contains("--verify-highlight-protection") {
                 CaptureResolutionVerificationView()
             } else {
                 projectList
@@ -156,16 +156,38 @@ private struct CaptureResolutionVerificationView: View {
 
     @MainActor private func verify() async {
         let original = camera.resolution
+        let checkHighlights = ProcessInfo.processInfo.arguments.contains("--verify-highlight-protection")
+        let originalHighlights = camera.highlightProtectionEnabled
         var samples: [[String: Any]] = []
-        var result: [String: Any] = ["startedAt": ISO8601DateFormatter().string(from: Date()), "version": "0.2.6", "passed": false]
+        var result: [String: Any] = ["startedAt": ISO8601DateFormatter().string(from: Date()), "version": "0.2.10", "passed": false]
         camera.onPhotoSaved = { photoURL = $0 }
         camera.onVideoSaved = { url, _, _, _, _ in videoURL = url }
         do {
             camera.requestAndConfigure()
             try await waitUntil { camera.isConfigured }
             // Exercise both actual preset transitions and both landscape directions.
-            for selected in [CaptureResolution.fullHD, .ultraHD, .fullHD] {
+            for (index, selected) in [CaptureResolution.fullHD, .ultraHD, .fullHD].enumerated() {
                 try await change(selected)
+                if checkHighlights {
+                    let enabled = index < 2
+                    let changed: Bool = await withCheckedContinuation { continuation in
+                        camera.setHighlightProtection(enabled) { continuation.resume(returning: $0) }
+                    }
+                    guard changed, camera.highlightProtectionEnabled == enabled,
+                          UserDefaults.standard.bool(forKey: "capture.autoHighlightProtectionEnabled") == enabled else { throw failure("防强光设置未生效或未保存") }
+                    try await Task.sleep(nanoseconds: 1_500_000_000)
+                    let state = await withCheckedContinuation { continuation in
+                        camera.highlightVerificationSnapshot { continuation.resume(returning: $0) }
+                    }
+                    guard state["continuousAutoExposure"] as? Bool == true,
+                          state["analysisStreamEnabled"] as? Bool == enabled else { throw failure("防强光自动曝光/分析连接未应用") }
+                    if enabled {
+                        guard (state["analysisFrames"] as? Int ?? 0) > 0 else { throw failure("未收到真实亮度分析帧") }
+                    } else {
+                        guard abs(state["actualExposureBias"] as? Float ?? 99) < 0.05 else { throw failure("关闭后曝光未恢复") }
+                    }
+                    samples.append(["mode": "highlightProtection", "selected": selected.title, "state": state])
+                }
                 for angle: CGFloat in [0, 180] {
                     status = "验证 \(selected.title)，方向 \(Int(angle))°"
                     camera.setRotation(angle)
@@ -190,6 +212,12 @@ private struct CaptureResolutionVerificationView: View {
                         camera.setResolution(selected == .ultraHD ? .fullHD : .ultraHD) { continuation.resume(returning: !$0) }
                     }
                     guard rejected, camera.resolution == selected else { throw failure("录制中仍可改变分辨率") }
+                    if checkHighlights {
+                        let highlightRejected: Bool = await withCheckedContinuation { continuation in
+                            camera.setHighlightProtection(!camera.highlightProtectionEnabled) { continuation.resume(returning: !$0) }
+                        }
+                        guard highlightRejected else { throw failure("录制中仍可切换防强光") }
+                    }
                     try await Task.sleep(nanoseconds: 2_000_000_000)
                     camera.stop()
                     try await waitUntil { videoURL != nil && !camera.isBusy }
@@ -217,6 +245,19 @@ private struct CaptureResolutionVerificationView: View {
             result["error"] = error.localizedDescription
             status = "验证失败：\(error.localizedDescription)"
         }
+        if checkHighlights {
+            if camera.isRecording { camera.stop(); try? await waitUntil { !camera.isBusy } }
+            if let url = photoURL { try? FileManager.default.removeItem(at: url) }
+            if let url = videoURL { try? FileManager.default.removeItem(at: url) }
+            do {
+                try await change(original)
+                let restored: Bool = await withCheckedContinuation { continuation in
+                    camera.setHighlightProtection(originalHighlights) { continuation.resume(returning: $0) }
+                }
+                guard restored else { throw failure("防强光设置恢复失败") }
+                result["settingsRestored"] = true
+            } catch { result["passed"] = false; result["restoreError"] = error.localizedDescription }
+        }
         result["samples"] = samples
         result["finishedAt"] = ISO8601DateFormatter().string(from: Date())
         camera.pauseSession()
@@ -224,7 +265,7 @@ private struct CaptureResolutionVerificationView: View {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: directory.appendingPathComponent("resolution-verification.json"), options: .atomic)
+            try data.write(to: directory.appendingPathComponent(checkHighlights ? "highlight-verification.json" : "resolution-verification.json"), options: .atomic)
         } catch { status += "；验证报告写入失败" }
     }
 }

@@ -1,5 +1,16 @@
 # 拍摄流程测试
 
+## 0.2.10 自动防强光
+
+`HighlightExposureTests.swift` 检查普通光线不压暗、忽略小亮点、窗户高亮压制、曝光滞回区、最大压暗限制、缓慢恢复、相机范围限制和关闭复位；GitHub workflow 已加入执行。
+
+```sh
+swiftc ios/GSMapCapture/CaptureModels.swift ios/Tests/HighlightExposureTests.swift -o /tmp/gsmap-highlight-tests
+/tmp/gsmap-highlight-tests
+```
+
+模拟器引导用例确认开关默认关闭且无真实相机时禁用。Debug 真机参数 `--verify-highlight-protection` 在 1080p 和 4K 开启实时分析，验证确实收到相机帧、连续自动曝光启用、录制中拒绝切换，并实际保存检查两个横屏方向的照片/视频尺寸与帧率；最后关闭并检查 0 EV，再恢复原设置。只清理测试产生的临时素材，不加入用户项目。报告写入 `Library/Application Support/GSMapCapture/highlight-verification.json`。不同强光场景下的观感与长时间功耗需要真机实拍评估。
+
 ## 0.2.9 视频防抖
 
 模拟器用例 `testGuidedRoomCaptureAndSkippedStagesPersist` 检查视频设置有防抖开关；没有真实相机时开关禁用，不声称防抖可用。
