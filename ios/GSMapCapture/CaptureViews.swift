@@ -136,7 +136,7 @@ struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var store: CaptureStore
-    @StateObject private var camera = CameraService()
+    @StateObject private var camera: CameraService
     @StateObject private var motion = MotionService()
     let projectId: UUID
     let sessionId: UUID
@@ -154,6 +154,13 @@ struct CaptureView: View {
     @State private var intervalRunning = false
     @State private var intervalTimer: Timer?
     @State private var feedback = ""
+
+    init(projectId: UUID, sessionId: UUID, mode: CaptureMode) {
+        self.projectId = projectId
+        self.sessionId = sessionId
+        self.mode = mode
+        _camera = StateObject(wrappedValue: CameraService(captureMode: mode))
+    }
 
     private var sessionRecord: CaptureSessionRecord? {
         store.projects.first(where: { $0.id == projectId })?.sessions.first(where: { $0.id == sessionId })
@@ -417,6 +424,64 @@ struct CaptureView: View {
                     Text("照片与视频使用此分辨率。照片按 16:9 保存；竖拍时宽高互换。录制、保存或间隔拍摄中不能切换。")
                         .font(.footnote).foregroundStyle(.secondary)
                     if let error = camera.errorMessage { Text(error).font(.footnote).foregroundStyle(.orange) }
+                }
+                if mode == .video {
+                    Section("视频防抖") {
+                        Toggle("启用视频防抖", isOn: Binding(
+                            get: { camera.videoStabilizationEnabled },
+                            set: { camera.setVideoStabilization($0) }
+                        ))
+                        .accessibilityIdentifier("capture.video-stabilization")
+                        .disabled(!camera.isConfigured || (!camera.videoStabilizationAvailable && !camera.videoStabilizationEnabled) || camera.isBusy || flow.inFlight || intervalRunning)
+                        if camera.videoStabilizationEnabled && camera.videoStabilizationActive {
+                            Text("已生效：录制画面会更平滑。防抖会裁切或轻微变形画面，重建几何精度可能下降。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else if !camera.videoStabilizationAvailable {
+                            Text("当前相机或分辨率不支持视频防抖。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else if camera.videoStabilizationEnabled {
+                            Text("已开启防抖，实际生效状态由相机确定。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text("默认关闭，适合需要保持重建几何精度的采集。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Section("防强光方案 · 单选") {
+                    Picker("防强光方案", selection: Binding(
+                        get: { camera.highlightMode },
+                        set: { camera.setHighlightMode($0) }
+                    )) {
+                        Text("关闭").tag(HighlightProtectionMode.off)
+                        Text("自动压曝光").tag(HighlightProtectionMode.autoExposure)
+                            .disabled(!camera.highlightProtectionAvailable)
+                        if mode == .video {
+                            Text("系统 HDR").tag(HighlightProtectionMode.systemHDR)
+                                .disabled(!camera.systemHDRAvailable)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("capture.highlight-mode")
+                    .disabled(!camera.isConfigured || camera.isBusy || flow.inFlight || intervalRunning)
+                    if camera.isChangingHighlightMode {
+                        ProgressView("正在切换防强光方案…")
+                    } else if !camera.isConfigured {
+                        Text("相机就绪后可选择。").font(.footnote).foregroundStyle(.secondary)
+                    } else if camera.highlightMode == .systemHDR && camera.systemHDRActive {
+                        Text("系统 HDR 已生效：由相机合并不同曝光，兼顾亮部与暗部；自动压曝光已关闭。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    } else if camera.highlightProtectionEnabled {
+                        Text(camera.highlightExposureBias < -0.05
+                             ? String(format: "亮部保护中：曝光 %.1f EV", camera.highlightExposureBias)
+                             : "正在自动检测画面高亮。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                    if mode == .video && camera.isConfigured && !camera.systemHDRAvailable {
+                        Text("当前相机档位不支持系统 HDR。").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Text("默认关闭，两个方案不能同时启用。自动压曝光适用于照片和视频，暗部可能变暗；系统 HDR 仅用于视频。拍摄中不能切换，均无法消除光学眩光。")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 if mode == .video && flow.stage != .detail {
                     Section("手动对齐参考线") {

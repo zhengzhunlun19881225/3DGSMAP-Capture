@@ -1,6 +1,61 @@
 import XCTest
 
 final class CaptureSmokeTests: XCTestCase {
+    func testVideoSaveToPhotosPreservesOriginalBytesAndIndex() {
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["--verify-video-export", "--verify-photos-copy"]
+        app.launch()
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let fullAccess = springboard.buttons.matching(NSPredicate(format: "label IN %@", ["Allow Full Access", "允许完全访问", "允许访问所有照片", "Allow Access to All Photos"])).firstMatch
+        if fullAccess.waitForExistence(timeout: 5) { fullAccess.tap() }
+        XCTAssertTrue(app.staticTexts["测试视频已准备：1080p 和 4K"].waitForExistence(timeout: 30))
+        app.buttons["video.export.photos"].tap()
+        let status = app.staticTexts["video.export.status"]
+        let saved = NSPredicate(format: "label BEGINSWITH %@", "已保存 2 个视频到相册")
+        expectation(for: saved, evaluatedWith: status)
+        waitForExpectations(timeout: 60)
+        app.buttons["验证副本与原件"].tap()
+        XCTAssertTrue(app.staticTexts["验证通过：原件与项目索引保留，相册副本逐字节一致"].waitForExistence(timeout: 30), app.debugDescription)
+        screenshot(app, "video-photos-copy-verified")
+    }
+
+    func testVideoFilesPickerCancellationPreservesOriginals() {
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["--verify-video-export"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["测试视频已准备：1080p 和 4K"].waitForExistence(timeout: 30))
+        app.buttons["video.export.files"].tap()
+        let cancel = app.buttons["video.export.cancelFiles"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10), app.debugDescription)
+        screenshot(app, "video-files-picker")
+        cancel.tap()
+        XCTAssertTrue(app.staticTexts["已取消导出，App 内原件保留。"].waitForExistence(timeout: 10))
+        app.buttons["验证副本与原件"].tap()
+        XCTAssertTrue(app.staticTexts["验证通过：原件与项目索引保留"].waitForExistence(timeout: 10))
+        screenshot(app, "video-files-cancel-preserved")
+    }
+
+    func testVideoFilesExportPreservesOriginalBytesAndIndex() {
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["--verify-video-export"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["测试视频已准备：1080p 和 4K"].waitForExistence(timeout: 30))
+        app.buttons["video.export.files"].tap()
+        let save = app.buttons.matching(NSPredicate(format: "label IN %@", ["Save", "存储"])).firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 10), app.debugDescription)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["视频已导出到文件，App 内原件保留。"].waitForExistence(timeout: 30), app.debugDescription)
+        app.buttons["验证副本与原件"].tap()
+        XCTAssertTrue(app.staticTexts["验证通过：原件与项目索引保留，文件副本逐字节一致"].waitForExistence(timeout: 10), app.debugDescription)
+        screenshot(app, "video-files-copy-verified")
+    }
+
     private func screenshot(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
@@ -79,11 +134,6 @@ final class CaptureSmokeTests: XCTestCase {
         app.buttons["capture.continue"].tap()
         XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
         screenshot(app, "capture-horizontal-ready")
-        XCUIDevice.shared.orientation = .landscapeRight
-        XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["请将手机横置"].exists)
-        screenshot(app, "capture-horizontal-ready-opposite")
-        XCUIDevice.shared.orientation = .landscapeLeft
         app.buttons["拍摄设置"].tap()
         XCTAssertTrue(app.navigationBars["拍摄设置"].waitForExistence(timeout: 5))
         let resolution = app.segmentedControls["capture.resolution"]
@@ -92,10 +142,34 @@ final class CaptureSmokeTests: XCTestCase {
         XCTAssertTrue(resolution.buttons["1080p"].exists)
         XCTAssertFalse(resolution.isEnabled, "Simulator has no real camera; it must not claim a successful resolution switch")
         XCTAssertFalse(app.staticTexts["capture.resolution.applied"].exists)
+        let stabilization = app.switches["capture.video-stabilization"]
+        XCTAssertTrue(stabilization.exists)
+        XCTAssertFalse(stabilization.isEnabled, "Simulator has no real camera; stabilization must not claim to be available")
+        XCTAssertEqual(stabilization.value as? String, "0", "New installs must default to stabilization off")
         screenshot(app, "capture-resolution-settings")
+        let highlights = app.segmentedControls["capture.highlight-mode"]
+        for _ in 0..<6 where !highlights.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
+        }
+        XCTAssertTrue(highlights.exists, app.debugDescription)
+        XCTAssertFalse(highlights.isEnabled, "No real camera must leave highlight protection unavailable")
+        XCTAssertTrue(highlights.buttons["关闭"].isSelected)
+        XCTAssertTrue(highlights.buttons["自动压曝光"].exists)
+        XCTAssertTrue(highlights.buttons["系统 HDR"].exists)
+        screenshot(app, "capture-highlight-protection-settings")
+        for _ in 0..<6 where !app.sliders.firstMatch.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
+        }
         XCTAssertTrue(app.sliders.firstMatch.exists)
         app.sliders.firstMatch.adjust(toNormalizedSliderPosition: 0.8)
         app.buttons["完成"].tap()
+        XCUIDevice.shared.orientation = .landscapeRight
+        XCTAssertTrue(app.buttons["拍摄设置"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["请将手机横置"].exists)
+        screenshot(app, "capture-horizontal-ready-opposite")
+        XCUIDevice.shared.orientation = .landscapeLeft
         app.buttons["capture.help"].tap()
         app.buttons["capture.skip"].tap()
         XCTAssertEqual(title.label, "第2步：环绕房间仰视拍摄")

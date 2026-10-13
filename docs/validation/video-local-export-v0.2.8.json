@@ -1,0 +1,40 @@
+{
+  "version": "0.2.8",
+  "build": 10,
+  "date": "2026-10-12",
+  "simulator": {
+    "runtime": "iOS 18.5",
+    "testsPassed": 3,
+    "testVideoDimensions": [
+      [
+        1920,
+        1080
+      ],
+      [
+        3840,
+        2160
+      ]
+    ],
+    "photosOriginalBytesMatch": true,
+    "filesAllRequestedOriginalBytesMatch": true,
+    "cancellationPreservesOriginals": true,
+    "projectIndexUnchanged": true
+  },
+  "iphone13": {
+    "system": "iOS 26.2",
+    "overlayInstalled": true,
+    "normalLaunchSucceeded": true,
+    "projectIndexByteIdentical": true,
+    "originalVideoCount": 4,
+    "originalVideoBytes": 3886001623,
+    "allOriginalNamesSizesModificationDatesUnchanged": true
+  },
+  "regressionsPassed": [
+    "UploadFileWorkerTests",
+    "CaptureFlowTests",
+    "CaptureStoreDeletionTests"
+  ],
+  "limits": [
+    "On-device export of the existing large captured videos has not been exercised. Copy/Photos byte verification used generated simulator fixtures."
+  ]
+}

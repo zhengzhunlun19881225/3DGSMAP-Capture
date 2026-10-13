@@ -1,0 +1,269 @@
+{
+  "version": "0.2.10",
+  "build": 12,
+  "date": "2026-10-13",
+  "device": "iPhone 13",
+  "checks": {
+    "algorithmRegression": "passed",
+    "simulatorSettingsAndGuidedCapture": "passed",
+    "captureFlowRegression": "passed",
+    "iphoneBuildAndSignature": "passed",
+    "overlayInstall": "passed",
+    "storeRegression": "passed",
+    "normalAppLaunch": "passed"
+  },
+  "deviceMeasurements": {
+    "finishedAt": "2026-10-13T03:57:03Z",
+    "passed": true,
+    "samples": [
+      {
+        "mode": "highlightProtection",
+        "selected": "1080p",
+        "state": {
+          "actualExposureBias": -0.4000871479511261,
+          "analysisFrames": 3,
+          "analysisStreamEnabled": true,
+          "continuousAutoExposure": true,
+          "enabled": true
+        }
+      },
+      {
+        "bytes": 714941,
+        "height": 1080,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 0,
+        "selected": "1080p",
+        "width": 1920
+      },
+      {
+        "bytes": 2473942,
+        "duration": 2.2,
+        "encodedHeight": 1080,
+        "encodedWidth": 1920,
+        "fps": 30,
+        "height": 1080,
+        "mode": "video",
+        "rotation": 0,
+        "selected": "1080p",
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "bytes": 833025,
+        "height": 1080,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 180,
+        "selected": "1080p",
+        "width": 1920
+      },
+      {
+        "bytes": 2256991,
+        "duration": 2.265,
+        "encodedHeight": 1080,
+        "encodedWidth": 1920,
+        "fps": 30,
+        "height": 1080,
+        "mode": "video",
+        "rotation": 180,
+        "selected": "1080p",
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "mode": "highlightProtection",
+        "selected": "4K",
+        "state": {
+          "actualExposureBias": -0.599120557308197,
+          "analysisFrames": 3,
+          "analysisStreamEnabled": true,
+          "continuousAutoExposure": true,
+          "enabled": true
+        }
+      },
+      {
+        "bytes": 1404093,
+        "height": 2160,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 0,
+        "selected": "4K",
+        "width": 3840
+      },
+      {
+        "bytes": 6682489,
+        "duration": 2.1983333333333333,
+        "encodedHeight": 2160,
+        "encodedWidth": 3840,
+        "fps": 30,
+        "height": 2160,
+        "mode": "video",
+        "rotation": 0,
+        "selected": "4K",
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      },
+      {
+        "bytes": 1086037,
+        "height": 2160,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 180,
+        "selected": "4K",
+        "width": 3840
+      },
+      {
+        "bytes": 6600411,
+        "duration": 2.2316666666666665,
+        "encodedHeight": 2160,
+        "encodedWidth": 3840,
+        "fps": 30,
+        "height": 2160,
+        "mode": "video",
+        "rotation": 180,
+        "selected": "4K",
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      },
+      {
+        "mode": "highlightProtection",
+        "selected": "1080p",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "continuousAutoExposure": true,
+          "enabled": false
+        }
+      },
+      {
+        "bytes": 457845,
+        "height": 1080,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 0,
+        "selected": "1080p",
+        "width": 1920
+      },
+      {
+        "bytes": 2196132,
+        "duration": 2.2316666666666665,
+        "encodedHeight": 1080,
+        "encodedWidth": 1920,
+        "fps": 30,
+        "height": 1080,
+        "mode": "video",
+        "rotation": 0,
+        "selected": "1080p",
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "bytes": 411004,
+        "height": 1080,
+        "mode": "photo",
+        "orientation": 1,
+        "rotation": 180,
+        "selected": "1080p",
+        "width": 1920
+      },
+      {
+        "bytes": 2238934,
+        "duration": 2.2,
+        "encodedHeight": 1080,
+        "encodedWidth": 1920,
+        "fps": 30,
+        "height": 1080,
+        "mode": "video",
+        "rotation": 180,
+        "selected": "1080p",
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      }
+    ],
+    "settingsRestored": true,
+    "startedAt": "2026-10-13T03:56:37Z",
+    "version": "0.2.10"
+  },
+  "limits": [
+    "Visual performance across extreme lighting and long-duration power/thermal effects were not evaluated.",
+    "Exposure correction cannot eliminate optical lens flare or exceed sensor dynamic range."
+  ],
+  "videoStabilizationRegression": {
+    "testedAppVersion": "0.2.10",
+    "note": "The existing Debug harness labels its own report version as 0.2.9. The app under test was 0.2.10 build 12.",
+    "deviceMeasurements": {
+      "finishedAt": "2026-10-13T04:00:13Z",
+      "initialEnabled": true,
+      "passed": true,
+      "samples": [
+        {
+          "active": false,
+          "enabled": false,
+          "fps": 30,
+          "height": 1080,
+          "resolution": "1080p",
+          "switchDuringRecordingRejected": true,
+          "width": 1920
+        },
+        {
+          "active": true,
+          "enabled": true,
+          "fps": 30,
+          "height": 1080,
+          "resolution": "1080p",
+          "switchDuringRecordingRejected": true,
+          "width": 1920
+        },
+        {
+          "active": false,
+          "enabled": false,
+          "fps": 30,
+          "height": 1080,
+          "resolution": "1080p",
+          "switchDuringRecordingRejected": true,
+          "width": 1920
+        },
+        {
+          "active": false,
+          "enabled": false,
+          "fps": 30,
+          "height": 2160,
+          "resolution": "4K",
+          "switchDuringRecordingRejected": true,
+          "width": 3840
+        },
+        {
+          "active": true,
+          "enabled": true,
+          "fps": 30,
+          "height": 2160,
+          "resolution": "4K",
+          "switchDuringRecordingRejected": true,
+          "width": 3840
+        },
+        {
+          "active": false,
+          "enabled": false,
+          "fps": 30,
+          "height": 2160,
+          "resolution": "4K",
+          "switchDuringRecordingRejected": true,
+          "width": 3840
+        }
+      ],
+      "settingsRestored": true,
+      "startedAt": "2026-10-13T04:00:01Z",
+      "version": "0.2.9"
+    }
+  },
+  "dataPreservation": {
+    "existingSessionRecordsUnchanged": 18,
+    "existingAssetNamesSizesModifiedTimesUnchanged": 51,
+    "existingVideos": 17,
+    "newAssetsDuringValidation": 0,
+    "note": "The full index gained four empty sessions during the validation window; all pre-existing capture sessions match exactly by ID.",
+    "newEmptySessionsDuringValidation": 4
+  }
+}

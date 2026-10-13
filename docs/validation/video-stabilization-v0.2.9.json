@@ -1,0 +1,42 @@
+{
+  "version": "0.2.9",
+  "build": 11,
+  "date": "2026-10-13",
+  "implementation": {
+    "defaultEnabled": false,
+    "mode": "AVCaptureVideoStabilizationMode.standard",
+    "persistentPreference": true,
+    "unsupportedEnableRejected": true,
+    "switchDuringCaptureRejected": true
+  },
+  "checks": {
+    "iphoneDebugBuild": "passed",
+    "signatureVerification": "passed",
+    "simulatorGuidedCaptureUI": "passed",
+    "simulatorDefaultOffAndUnavailable": "passed",
+    "captureFlowRegression": "passed",
+    "storeRegression": "passed"
+  },
+  "device": {
+    "model": "iPhone 13",
+    "overlayInstallation": "passed",
+    "existingSessionRecordsPreserved": 16,
+    "existingAssetNamesSizesModifiedTimesPreserved": 49,
+    "existingVideoCount": 15,
+    "existingVideoBytes": 10678396544,
+    "newVideosDuringUpdate": 2,
+    "indexByteIdentical": false,
+    "indexDifference": "User added two capture batches/videos during validation; existing session records match exactly."
+  },
+  "pending": [
+    "Real-device active stabilization and recorded output validation: launch rejected because iPhone was locked. Unlock requested.",
+    "Visual smoothness comparison while walking/turning."
+  ],
+  "testEntry": "--verify-video-stabilization",
+  "followUp": {
+    "date": "2026-10-13",
+    "testedAppVersion": "0.2.10",
+    "activeModeAndRecordingChecks": "passed",
+    "report": "highlight-protection-v0.2.10.json"
+  }
+}

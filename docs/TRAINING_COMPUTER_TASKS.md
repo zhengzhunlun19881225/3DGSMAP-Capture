@@ -2,7 +2,9 @@
 
 日期：2026-10-12
 
-协议基线：iPhone App **0.2.6（build 8）**，仓库提交 **1179750**。
+协议基线：iPhone App **0.2.6（build 8）**，仓库提交 **1179750**。0.2.7/build 9 保持该 v1 上传协议，增加客户端校验进度、缓存和响应性改进。
+
+2026-10-12 更新：实际 Windows 训练机已部署手机网关和训练台接入展示；本文下方清单保留作为通用部署任务，不表示本机所有项目仍未实施。已知状态、档位映射和待完成的真机验收见 [CAPTURE_UPLOAD_UPDATE.md](CAPTURE_UPLOAD_UPDATE.md)。不要用本仓库旧桌面代码覆盖已运行的 Windows 训练台。
 
 仓库：<https://github.com/zhengzhunlun19881225/3DGSMAP-Capture>
 

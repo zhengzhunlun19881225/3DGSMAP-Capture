@@ -1,0 +1,189 @@
+{
+  "version": "0.2.11",
+  "build": 13,
+  "date": "2026-10-13",
+  "device": "iPhone 13",
+  "checks": {
+    "modePersistenceAndLegacyMigration": "passed",
+    "exposureAlgorithmRegression": "passed",
+    "simulatorSettingsAndGuidedCapture": "passed",
+    "captureFlowRegression": "passed",
+    "storageRegression": "passed",
+    "signedDeviceBuild": "passed",
+    "overlayInstall": "passed",
+    "normalAppLaunch": "passed"
+  },
+  "deviceMeasurements": {
+    "finishedAt": "2026-10-13T04:51:20Z",
+    "passed": true,
+    "samples": [
+      {
+        "fps": 30,
+        "height": 1080,
+        "mode": "systemHDR",
+        "resolution": "1080p",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "systemHDR",
+          "videoHDREnabled": true,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "fps": 30,
+        "height": 1080,
+        "mode": "autoExposure",
+        "resolution": "1080p",
+        "state": {
+          "actualExposureBias": -0.599120557308197,
+          "analysisFrames": 3,
+          "analysisStreamEnabled": true,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": true,
+          "selectedMode": "autoExposure",
+          "videoHDREnabled": false,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "fps": 30,
+        "height": 1080,
+        "mode": "off",
+        "resolution": "1080p",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "off",
+          "videoHDREnabled": false,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "fps": 30,
+        "height": 1080,
+        "mode": "systemHDR",
+        "resolution": "1080p",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "systemHDR",
+          "videoHDREnabled": true,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 1920
+      },
+      {
+        "fps": 30,
+        "height": 2160,
+        "mode": "systemHDR",
+        "resolution": "4K",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "systemHDR",
+          "videoHDREnabled": true,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      },
+      {
+        "fps": 30,
+        "height": 2160,
+        "mode": "autoExposure",
+        "resolution": "4K",
+        "state": {
+          "actualExposureBias": -0.599120557308197,
+          "analysisFrames": 3,
+          "analysisStreamEnabled": true,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": true,
+          "selectedMode": "autoExposure",
+          "videoHDREnabled": false,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      },
+      {
+        "fps": 30,
+        "height": 2160,
+        "mode": "off",
+        "resolution": "4K",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "off",
+          "videoHDREnabled": false,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      },
+      {
+        "fps": 30,
+        "height": 2160,
+        "mode": "systemHDR",
+        "resolution": "4K",
+        "state": {
+          "actualExposureBias": 0,
+          "analysisFrames": 0,
+          "analysisStreamEnabled": false,
+          "automaticHDRSelection": false,
+          "continuousAutoExposure": true,
+          "enabled": false,
+          "selectedMode": "systemHDR",
+          "videoHDREnabled": true,
+          "videoHDRSupported": true
+        },
+        "switchDuringRecordingRejected": true,
+        "width": 3840
+      }
+    ],
+    "settingsRestored": true,
+    "version": "0.2.11"
+  },
+  "dataPreservation": {
+    "projectIndexIdentical": true,
+    "existingSessions": 23,
+    "existingAssets": 51,
+    "existingVideos": 17,
+    "allExistingAssetPathsSizesAndModificationTimesUnchanged": true
+  },
+  "limitations": [
+    "HDR means the public camera HDR/EDR capture control, not 10-bit HLG/Dolby Vision encoding.",
+    "The new HDR mode is video-only; photos retain off/automatic exposure choices.",
+    "State, output dimensions and frame rate were measured; visual quality, motion ghosts, long-duration heat/power and reconstruction quality still need scene-specific assessment.",
+    "Optical flare cannot be removed by this setting."
+  ]
+}

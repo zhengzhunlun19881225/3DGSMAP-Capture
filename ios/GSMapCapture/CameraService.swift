@@ -23,6 +23,13 @@ final class CameraService: NSObject, ObservableObject {
     private let queue = DispatchQueue(label: "com.3dgsmap.camera")
     private let photoOutput = AVCapturePhotoOutput()
     private let movieOutput = AVCaptureMovieFileOutput()
+    private let highlightOutput = AVCaptureVideoDataOutput()
+    private var highlightOutputAvailable = false
+    private var highlightController = HighlightExposureController()
+    private var lastHighlightSampleTime: Double = -.infinity
+    #if DEBUG
+    private var highlightSampleCount = 0
+    #endif
     private var currentVideoURL: URL?
     private var currentVideoStarted: Date?
     private var configured = false
@@ -35,6 +42,10 @@ final class CameraService: NSObject, ObservableObject {
     private var photoResolution = CaptureResolution.fullHD
     private var videoResolution = CaptureResolution.fullHD
     private static let resolutionKey = "capture.outputResolution"
+    private static let stabilizationKey = "capture.videoStabilizationEnabled"
+    private var requestedVideoStabilization = UserDefaults.standard.bool(forKey: stabilizationKey)
+    private let captureMode: CaptureMode
+    private var requestedHighlightMode: HighlightProtectionMode
 
     @Published private(set) var permissionDenied = false
     @Published private(set) var isConfigured = false
@@ -44,9 +55,27 @@ final class CameraService: NSObject, ObservableObject {
     @Published private(set) var resolution = CaptureResolution(rawValue: UserDefaults.standard.string(forKey: resolutionKey) ?? "") ?? .fullHD
     @Published private(set) var supportedResolutions: [CaptureResolution] = []
     @Published private(set) var isChangingResolution = false
+    @Published private(set) var videoStabilizationEnabled = UserDefaults.standard.bool(forKey: stabilizationKey)
+    @Published private(set) var videoStabilizationAvailable = false
+    @Published private(set) var videoStabilizationActive = false
+    @Published private(set) var highlightMode: HighlightProtectionMode
+    var highlightProtectionEnabled: Bool { highlightMode == .autoExposure }
+    @Published private(set) var highlightProtectionAvailable = false
+    @Published private(set) var highlightExposureBias: Float = 0
+    @Published private(set) var systemHDRAvailable = false
+    @Published private(set) var systemHDRActive = false
+    @Published private(set) var isChangingHighlightMode = false
     @Published var errorMessage: String?
     var onPhotoSaved: ((URL) -> Void)?
     var onVideoSaved: ((URL, TimeInterval, Int, Int, String) -> Void)?
+
+    init(captureMode: CaptureMode = .video) {
+        self.captureMode = captureMode
+        let selected = HighlightProtectionMode.load(captureMode: captureMode)
+        requestedHighlightMode = selected
+        highlightMode = selected
+        super.init()
+    }
 
     func requestAndConfigure() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -78,6 +107,18 @@ final class CameraService: NSObject, ObservableObject {
             }
             self.session.addOutput(self.photoOutput)
             self.session.addOutput(self.movieOutput)
+            // A preview-sized analysis stream; saved photo/movie outputs keep their resolution.
+            if self.session.canAddOutput(self.highlightOutput) {
+                self.session.addOutput(self.highlightOutput)
+                let formats = self.highlightOutput.availableVideoPixelFormatTypes
+                if let format = [kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange].first(where: { formats.contains($0) }) {
+                    self.highlightOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: format]
+                    self.highlightOutput.automaticallyConfiguresOutputBufferDimensions = false
+                    self.highlightOutput.deliversPreviewSizedOutputBuffers = true
+                    self.highlightOutput.alwaysDiscardsLateVideoFrames = true
+                    self.highlightOutputAvailable = true
+                } else { self.session.removeOutput(self.highlightOutput) }
+            }
             self.session.commitConfiguration()
             let supported = CaptureResolution.allCases.filter { self.session.canSetSessionPreset(self.preset($0)) }
             let preferred = CaptureResolution(rawValue: UserDefaults.standard.string(forKey: Self.resolutionKey) ?? "") ?? .fullHD
@@ -87,6 +128,7 @@ final class CameraService: NSObject, ObservableObject {
             self.configured = true
             self.setLandscapeConnections()
             self.session.startRunning()
+            self.publishVideoStabilizationState()
             DispatchQueue.main.async {
                 self.resolution = selected; self.supportedResolutions = supported; self.isConfigured = true
                 if selected != preferred { self.errorMessage = "当前相机不支持 4K，已使用 1080p" }
@@ -124,8 +166,14 @@ final class CameraService: NSObject, ObservableObject {
         }
         device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
         device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
-        device.automaticallyAdjustsVideoHDREnabled = false
-        if device.isVideoHDREnabled { device.isVideoHDREnabled = false }
+        if !configured && !supportsHighlightMode(requestedHighlightMode, device: device) {
+            requestedHighlightMode = .off
+            DispatchQueue.main.async {
+                self.highlightMode = .off
+                self.errorMessage = "当前相机或档位不支持保存的防强光方案，本次已关闭"
+            }
+        }
+        try configureHighlightProtection(device: device, mode: requestedHighlightMode)
         session.beginConfiguration()
         photoOutput.maxPhotoDimensions = dimensions
         session.commitConfiguration()
@@ -148,6 +196,7 @@ final class CameraService: NSObject, ObservableObject {
                 try self.applyResolution(selected)
                 UserDefaults.standard.set(selected.rawValue, forKey: Self.resolutionKey)
                 if wasRunning { self.session.startRunning() }
+                self.publishVideoStabilizationState()
                 DispatchQueue.main.async {
                     self.resolution = selected; self.isChangingResolution = false; self.isBusy = false; completion?(true)
                 }
@@ -156,6 +205,7 @@ final class CameraService: NSObject, ObservableObject {
                 do { try self.applyResolution(previous) }
                 catch { self.configured = false }
                 if wasRunning && self.configured { self.session.startRunning() }
+                self.publishVideoStabilizationState()
                 let available = self.configured
                 DispatchQueue.main.async {
                     self.isConfigured = available; self.resolution = previous
@@ -170,6 +220,171 @@ final class CameraService: NSObject, ObservableObject {
         for output in [photoOutput as AVCaptureOutput, movieOutput as AVCaptureOutput] {
             guard let connection = output.connection(with: .video) else { continue }
             if connection.isVideoRotationAngleSupported(rotation) { connection.videoRotationAngle = rotation }
+            if output === movieOutput {
+                let supported = supportsStandardStabilization(connection)
+                connection.preferredVideoStabilizationMode = requestedVideoStabilization && supported ? .standard : .off
+                publishVideoStabilizationState()
+            }
+        }
+    }
+
+    private func supportsStandardStabilization(_ connection: AVCaptureConnection) -> Bool {
+        connection.isVideoStabilizationSupported && device?.activeFormat.isVideoStabilizationModeSupported(.standard) == true
+    }
+
+    private func publishVideoStabilizationState() {
+        guard let connection = movieOutput.connection(with: .video) else { return }
+        let supported = supportsStandardStabilization(connection)
+        let active = connection.activeVideoStabilizationMode != .off
+        DispatchQueue.main.async {
+            self.videoStabilizationAvailable = supported
+            self.videoStabilizationActive = active
+        }
+    }
+
+    /// Changes stabilization only while no capture is in flight. It is opt-in because
+    /// digital stabilization can warp pixels that are useful for 3D reconstruction.
+    func setVideoStabilization(_ enabled: Bool, completion: ((Bool) -> Void)? = nil) {
+        guard isConfigured, !isBusy, !isChangingResolution else { completion?(false); return }
+        isBusy = true; errorMessage = nil
+        queue.async {
+            guard !self.pendingPhoto, !self.movieRequested,
+                  let connection = self.movieOutput.connection(with: .video) else {
+                let busy = self.pendingPhoto || self.movieRequested
+                DispatchQueue.main.async { self.isBusy = busy; completion?(false) }
+                return
+            }
+            guard !enabled || self.supportsStandardStabilization(connection) else {
+                DispatchQueue.main.async {
+                    self.isBusy = false
+                    self.errorMessage = "当前分辨率不支持视频防抖"
+                    completion?(false)
+                }
+                return
+            }
+            self.requestedVideoStabilization = enabled
+            UserDefaults.standard.set(enabled, forKey: Self.stabilizationKey)
+            self.setLandscapeConnections()
+            DispatchQueue.main.async {
+                self.videoStabilizationEnabled = enabled
+                self.isBusy = false
+                completion?(true)
+            }
+        }
+    }
+
+    private func supportsHighlightProtection(_ device: AVCaptureDevice) -> Bool {
+        highlightOutputAvailable && device.isExposureModeSupported(.continuousAutoExposure) && device.minExposureTargetBias < 0
+    }
+
+    private func supportsSystemHDR(_ device: AVCaptureDevice) -> Bool {
+        captureMode == .video && device.activeFormat.isVideoHDRSupported && device.activeColorSpace != .HLG_BT2020
+    }
+
+    private func supportsHighlightMode(_ mode: HighlightProtectionMode, device: AVCaptureDevice) -> Bool {
+        switch mode {
+        case .off: return true
+        case .autoExposure: return supportsHighlightProtection(device)
+        case .systemHDR: return supportsSystemHDR(device)
+        }
+    }
+
+    /// Caller holds the device configuration lock and executes on the camera queue.
+    private func configureHighlightProtection(device: AVCaptureDevice, mode: HighlightProtectionMode) throws {
+        let supported = supportsHighlightProtection(device)
+        guard supportsHighlightMode(mode, device: device) else {
+            throw NSError(domain: "HighlightProtection", code: 1, userInfo: [NSLocalizedDescriptionKey: "当前相机或分辨率不支持\(mode.title)"])
+        }
+        // HLG formats are always HDR. Do not claim that an off/AE selection disables them.
+        guard device.activeColorSpace != .HLG_BT2020 else {
+            throw NSError(domain: "HighlightProtection", code: 2, userInfo: [NSLocalizedDescriptionKey: "当前相机格式无法关闭 HDR，请使用标准视频档位"])
+        }
+        let enabled = mode == .autoExposure
+        highlightOutput.setSampleBufferDelegate(nil, queue: nil)
+        highlightOutput.connection(with: .video)?.isEnabled = false
+        highlightController.reset()
+        lastHighlightSampleTime = -.infinity
+        #if DEBUG
+        highlightSampleCount = 0
+        #endif
+        if device.isExposureModeSupported(.continuousAutoExposure) {
+            device.exposureMode = .continuousAutoExposure
+            device.setExposureTargetBias(0, completionHandler: nil)
+        }
+        device.automaticallyAdjustsVideoHDREnabled = false
+        device.isVideoHDREnabled = mode == .systemHDR
+        guard device.isVideoHDREnabled == (mode == .systemHDR) else {
+            throw NSError(domain: "HighlightProtection", code: 3, userInfo: [NSLocalizedDescriptionKey: "系统 HDR 状态未应用"])
+        }
+        highlightOutput.setSampleBufferDelegate(enabled && supported ? self : nil, queue: enabled && supported ? queue : nil)
+        highlightOutput.connection(with: .video)?.isEnabled = enabled && supported
+        let hdrAvailable = supportsSystemHDR(device)
+        let hdrActive = device.isVideoHDREnabled
+        DispatchQueue.main.async {
+            self.highlightProtectionAvailable = supported
+            self.highlightExposureBias = 0
+            self.systemHDRAvailable = hdrAvailable
+            self.systemHDRActive = hdrActive
+        }
+    }
+
+    func setHighlightProtection(_ enabled: Bool, completion: ((Bool) -> Void)? = nil) {
+        setHighlightMode(enabled ? .autoExposure : .off, completion: completion)
+    }
+
+    func setHighlightMode(_ selected: HighlightProtectionMode, completion: ((Bool) -> Void)? = nil) {
+        guard isConfigured, !isBusy, !isChangingResolution else { completion?(false); return }
+        isBusy = true; isChangingHighlightMode = true; errorMessage = nil
+        queue.async {
+            guard let device = self.device, self.configured, !self.movieRequested, !self.pendingPhoto else {
+                let busy = self.movieRequested || self.pendingPhoto
+                DispatchQueue.main.async { self.isBusy = busy; self.isChangingHighlightMode = false; completion?(false) }
+                return
+            }
+            guard self.supportsHighlightMode(selected, device: device) else {
+                DispatchQueue.main.async {
+                    self.isBusy = false; self.isChangingHighlightMode = false
+                    self.errorMessage = "当前相机或分辨率不支持\(selected.title)"
+                    completion?(false)
+                }
+                return
+            }
+            let previous = self.requestedHighlightMode
+            let wasRunning = self.session.isRunning
+            do {
+                if wasRunning { self.session.stopRunning() }
+                self.session.beginConfiguration()
+                defer { self.session.commitConfiguration() }
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                try self.configureHighlightProtection(device: device, mode: selected)
+                self.requestedHighlightMode = selected
+            } catch {
+                let message = error.localizedDescription
+                do {
+                    self.session.beginConfiguration()
+                    defer { self.session.commitConfiguration() }
+                    try device.lockForConfiguration()
+                    defer { device.unlockForConfiguration() }
+                    try self.configureHighlightProtection(device: device, mode: previous)
+                } catch { self.configured = false }
+                if wasRunning && self.configured { self.session.startRunning() }
+                let available = self.configured
+                DispatchQueue.main.async {
+                    self.isConfigured = available
+                    self.isBusy = false; self.isChangingHighlightMode = false
+                    self.errorMessage = "防强光切换失败：\(message)"
+                    completion?(false)
+                }
+                return
+            }
+            if wasRunning { self.session.startRunning() }
+            selected.save()
+            DispatchQueue.main.async {
+                self.highlightMode = selected
+                self.isBusy = false; self.isChangingHighlightMode = false
+                completion?(true)
+            }
         }
     }
 
@@ -238,7 +453,73 @@ final class CameraService: NSObject, ObservableObject {
 
     func previewView() -> CameraPreview { CameraPreview(session: session) }
 
+    #if DEBUG
+    func highlightVerificationSnapshot(_ completion: @escaping ([String: Any]) -> Void) {
+        queue.async {
+            let state: [String: Any] = [
+                "enabled": self.requestedHighlightMode == .autoExposure,
+                "selectedMode": self.requestedHighlightMode.rawValue,
+                "videoHDRSupported": self.device?.activeFormat.isVideoHDRSupported ?? false,
+                "videoHDREnabled": self.device?.isVideoHDREnabled ?? false,
+                "automaticHDRSelection": self.device?.automaticallyAdjustsVideoHDREnabled ?? true,
+                "analysisFrames": self.highlightSampleCount,
+                "analysisStreamEnabled": self.highlightOutput.connection(with: .video)?.isEnabled ?? false,
+                "continuousAutoExposure": self.device?.exposureMode == .continuousAutoExposure,
+                "actualExposureBias": self.device?.exposureTargetBias ?? 0
+            ]
+            DispatchQueue.main.async { completion(state) }
+        }
+    }
+    #endif
+
     deinit { if session.isRunning { session.stopRunning() } }
+}
+
+extension CameraService: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        // Runs on the camera queue, never retains a frame or touches the main thread's pixels.
+        guard requestedHighlightMode == .autoExposure, let device, !device.isVideoHDREnabled, supportsHighlightProtection(device),
+              !pendingPhoto, let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
+        guard time.isFinite, time - lastHighlightSampleTime >= 0.5 else { return }
+        lastHighlightSampleTime = time
+        guard CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess else { return }
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard CVPixelBufferGetPlaneCount(buffer) >= 1,
+              let base = CVPixelBufferGetBaseAddressOfPlane(buffer, 0) else { return }
+        let width = CVPixelBufferGetWidthOfPlane(buffer, 0), height = CVPixelBufferGetHeightOfPlane(buffer, 0)
+        let rowBytes = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
+        let pixels = base.assumingMemoryBound(to: UInt8.self)
+        let limitedRange = CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        var luminance: [UInt8] = []
+        luminance.reserveCapacity(2400)
+        for y in stride(from: 0, to: height, by: max(1, height / 36)) {
+            for x in stride(from: 0, to: width, by: max(1, width / 64)) {
+                let value = Int(pixels[y * rowBytes + x])
+                luminance.append(limitedRange ? UInt8(clamping: (value - 16) * 255 / 219) : UInt8(value))
+            }
+        }
+        let bias = highlightController.update(luminance: luminance, minimumBias: device.minExposureTargetBias)
+        #if DEBUG
+        highlightSampleCount += 1
+        #endif
+        guard abs(device.exposureTargetBias - bias) >= 0.05 else { return }
+        do {
+            try device.lockForConfiguration()
+            device.setExposureTargetBias(bias) { [weak self] _ in
+                let applied = device.exposureTargetBias
+                DispatchQueue.main.async { self?.highlightExposureBias = applied }
+            }
+            device.unlockForConfiguration()
+        } catch {
+            // Stop adjustment on failure, rather than silently claiming automatic protection.
+            highlightOutput.setSampleBufferDelegate(nil, queue: nil)
+            DispatchQueue.main.async {
+                self.highlightProtectionAvailable = false
+                self.errorMessage = "自动防强光暂不可用，请关闭后重试：\(error.localizedDescription)"
+            }
+        }
+    }
 }
 
 extension CameraService: AVCapturePhotoCaptureDelegate {

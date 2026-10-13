@@ -1,0 +1,34 @@
+name: Validate iOS capture
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths: ['ios/**', '.github/workflows/ios-validation.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios-validation.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload file worker regression
+        run: |
+          swiftc -swift-version 5 ios/GSMapCapture/UploadFileWorker.swift ios/Tests/UploadFileWorkerTests.swift -o "$RUNNER_TEMP/upload-tests"
+          "$RUNNER_TEMP/upload-tests"
+      - name: Existing capture and storage regressions
+        run: |
+          swiftc ios/GSMapCapture/CaptureModels.swift ios/Tests/CaptureFlowTests.swift -o "$RUNNER_TEMP/flow-tests"
+          "$RUNNER_TEMP/flow-tests"
+          swiftc ios/GSMapCapture/CaptureModels.swift ios/GSMapCapture/CaptureStore.swift ios/Tests/CaptureStoreDeletionTests.swift -o "$RUNNER_TEMP/store-tests"
+          "$RUNNER_TEMP/store-tests"
+      - name: Highlight exposure controller regression
+        run: |
+          swiftc ios/GSMapCapture/CaptureModels.swift ios/Tests/HighlightExposureTests.swift -o "$RUNNER_TEMP/highlight-tests"
+          "$RUNNER_TEMP/highlight-tests"
+      - name: Build iOS simulator app
+        run: xcodebuild -project ios/GSMapCapture.xcodeproj -scheme GSMapCapture -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build

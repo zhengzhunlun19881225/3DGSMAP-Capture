@@ -137,3 +137,56 @@ struct CaptureProject: Codable, Identifiable {
     var updatedAt: Date
     var sessions: [CaptureSessionRecord]
 }
+
+enum HighlightProtectionMode: String, CaseIterable, Identifiable {
+    case off, autoExposure, systemHDR
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .off: return "关闭"
+        case .autoExposure: return "自动压曝光"
+        case .systemHDR: return "系统 HDR"
+        }
+    }
+    static let preferenceKey = "capture.highlightProtectionMode"
+    static let legacyPreferenceKey = "capture.autoHighlightProtectionEnabled"
+
+    static func load(from defaults: UserDefaults = .standard, captureMode: CaptureMode = .video) -> Self {
+        let saved = defaults.string(forKey: preferenceKey).flatMap(Self.init(rawValue:))
+            ?? (defaults.bool(forKey: legacyPreferenceKey) ? .autoExposure : .off)
+        // Keep the saved video preference intact when opening a photo session.
+        return captureMode == .photo && saved == .systemHDR ? .off : saved
+    }
+
+    func save(to defaults: UserDefaults = .standard) {
+        defaults.set(rawValue, forKey: Self.preferenceKey)
+        defaults.set(self == .autoExposure, forKey: Self.legacyPreferenceKey)
+    }
+}
+
+/// Highlight protection with a dead band and slower recovery to avoid exposure pumping.
+/// Samples are normalized 8-bit luminance, independent of camera buffer range/stride.
+struct HighlightExposureController {
+    private(set) var bias: Float = 0
+
+    mutating func reset() { bias = 0 }
+
+    mutating func update(luminance: [UInt8], minimumBias: Float) -> Float {
+        guard !luminance.isEmpty else { return bias }
+        var histogram = [Int](repeating: 0, count: 256)
+        for value in luminance { histogram[Int(value)] += 1 }
+        let rank = Int(ceil(Double(luminance.count) * 0.98))
+        var count = 0
+        var highlight = 0
+        for value in histogram.indices {
+            count += histogram[value]
+            if count >= rank { highlight = value; break }
+        }
+        // Ignore isolated specular points. Limit darkening even when the sun stays clipped.
+        let lowerBound = min(0, max(-1.5, minimumBias))
+        if highlight >= 242 { bias = max(lowerBound, bias - 0.2) }
+        else if highlight <= 210 { bias = min(0, bias + 0.1) }
+        bias = max(lowerBound, min(0, bias))
+        return bias
+    }
+}

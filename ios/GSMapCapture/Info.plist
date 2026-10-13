@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.6</string>
+	<string>0.2.11</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>13</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -31,6 +31,12 @@
 	<string>回到 Wi-Fi 后连接你的训练电脑，上传素材并查看三维成果。</string>
 	<key>NSMotionUsageDescription</key>
 	<string>提供拍摄姿态与转动速度提示。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>将采集视频的副本保存到手机相册，App 内原始视频和项目记录会保留。</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
